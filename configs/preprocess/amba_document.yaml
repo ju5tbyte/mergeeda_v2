@@ -1,0 +1,19 @@
+# Configuration for AMBA document OCR parsing
+
+# Input PDF path
+input_pdf: "data/datasets/amba_document/IHI0022L_amba_axi_protocol_spec.pdf"
+
+# Output directory for parsed results
+output_dir: "data/amba_document/IHI0022L_amba_axi_protocol_spec"
+
+# OCR model configuration
+model:
+  name: "deepseek-ai/DeepSeek-OCR"
+  dpi: 300
+
+# Chunking configuration
+chunking:
+  # Level to chunk at (e.g., 3 for sections like "1.2.3")
+  level: 3
+  # Custom regex patterns for each level (null for default)
+  level_patterns: null
