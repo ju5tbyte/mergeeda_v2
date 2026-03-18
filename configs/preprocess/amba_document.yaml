@@ -1,5 +1,10 @@
 # Configuration for AMBA document OCR parsing
 
+# Hydra output directory configuration
+hydra:
+  run:
+    dir: data/outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
 # Input PDF path
 input_pdf: "data/datasets/amba_document/IHI0022L_amba_axi_protocol_spec.pdf"
 
