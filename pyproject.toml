@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mergeeda"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+dependencies = [
+    "numpy",
+    "openai",
+    "hydra-core",
+    "omegaconf",
+    "python-dotenv",
+    "datasets",
+    "tqdm",
+    "Pillow",
+    "transformers==4.57.0",
+    "qwen-vl-utils",
+    "bitsandbytes",
+    "accelerate==1.7.0",
+    "sentencepiece!=0.1.92",
+    "pdf2image",
+    "peft==0.17.1",
+    "wandb",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "mypy",
+    "ipykernel",
+    "jupyter",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mergeeda"]
