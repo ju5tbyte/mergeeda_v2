@@ -6,10 +6,10 @@ hydra:
     dir: data/outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 # Input PDF path
-input_pdf: "data/datasets/amba_document/IHI0022L_amba_axi_protocol_spec.pdf"
+input_pdf: "data/datasets/amba_document/raw/IHI0022L_amba_axi_protocol_spec.pdf"
 
 # Output directory for parsed results
-output_dir: "data/amba_document/IHI0022L_amba_axi_protocol_spec"
+output_dir: "data/datasets/amba_document/processed/IHI0022L_amba_axi_protocol_spec"
 
 # OCR model configuration
 model:
