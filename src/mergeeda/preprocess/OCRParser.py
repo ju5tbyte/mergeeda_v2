@@ -58,9 +58,9 @@ class OCRParser:
 
         # Create output directories
         chunks_dir = output_path / "chunks"
-        images_dir = output_path / "images"
+        materials_dir = output_path / "materials"
         chunks_dir.mkdir(parents=True, exist_ok=True)
-        images_dir.mkdir(parents=True, exist_ok=True)
+        materials_dir.mkdir(parents=True, exist_ok=True)
 
         # Step 1: Convert PDF to images
         logger.info("Converting PDF to images...")
@@ -74,10 +74,10 @@ class OCRParser:
         logger.info("Running OCR on all pages...")
         ocr_results = self._ocr_pages(page_images)
 
-        # Step 4: Extract images and replace tags
-        logger.info("Extracting images from OCR results...")
-        markdown_text, image_metadata = self._extract_and_replace_images(
-            ocr_results, page_images, images_dir
+        # Step 4: Extract materials (images and tables) and replace tags
+        logger.info("Extracting materials from OCR results...")
+        markdown_text, material_metadata = self._extract_and_replace_materials(
+            ocr_results, page_images, materials_dir
         )
 
         # Step 5: Chunk markdown by heading level
@@ -87,9 +87,9 @@ class OCRParser:
         )
         logger.info(f"Created {len(chunks)} chunks")
 
-        # Step 6: Save chunks with proper image references
+        # Step 6: Save chunks with proper material references
         logger.info("Saving chunks...")
-        self._save_chunks(chunks, chunks_dir, image_metadata)
+        self._save_chunks(chunks, chunks_dir, material_metadata)
 
         logger.info("PDF parsing completed successfully")
 
@@ -121,78 +121,145 @@ class OCRParser:
         outputs = self.llm.generate(model_inputs, sampling_params)
         return [output.outputs[0].text for output in outputs]
 
-    def _extract_and_replace_images(
+    def _extract_and_replace_materials(
         self,
         ocr_results: list[str],
         page_images: list[Image.Image],
-        images_dir: Path,
-    ) -> tuple[str, dict[str, tuple[int, int]]]:
-        """Extract images from bounding boxes and replace tags with image references.
+        materials_dir: Path,
+    ) -> tuple[str, dict[str, tuple[int, int, str]]]:
+        """Extract materials (images, tables) from OCR results and replace with tags.
+
+        DeepSeek-OCR returns structured output with ref-det tags:
+        <|ref|>TYPE<|/ref|><|det|>[[x1, y1, x2, y2]]<|/det|>
+
+        Strategy:
+        1. Parse all ref-det tags from original text
+        2. Process in REVERSE order to avoid index shifting
+        3. For images: crop and save from page image, replace tag with <material:...>
+        4. For tables: find <table>...</table> block, save as text, replace with <material:...>
+        5. For others (title, text, etc.): just remove the tag, keep content
 
         Returns:
-            Tuple of (processed markdown text, image metadata mapping)
-            image_metadata maps image filename to (chunk_id, image_id)
+            Tuple of (processed markdown text, material metadata mapping)
+            material_metadata maps material filename to (chunk_id, material_id, material_type)
         """
-        # Pattern to match: <|ref|>image<|/ref|><|det|>[x1, y1, x2, y2]<|/det|>
-        # Only match when ref tag contains "image" label
-        pattern = re.compile(
-            r"<\|ref\|>(image)<\|/ref\|><\|det\|>\[(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\]<\|/det\|>",
+        # Pattern to match: <|ref|>TYPE<|/ref|><|det|>[[...]]<|/det|>
+        tag_pattern = re.compile(
+            r"<\|ref\|>(\w+)<\|/ref\|><\|det\|>\[\[([^\]]+(?:\],\s*\[[^\]]+)*)\]\]<\|/det\|>",
             re.IGNORECASE,
         )
 
         combined_markdown = ""
-        image_counter = 1
-        image_metadata: dict[str, tuple[int, int]] = {}
+        material_counter = 1
+        material_metadata: dict[str, tuple[int, int, str]] = {}
 
         for page_idx, ocr_text in enumerate(ocr_results):
             page_num = page_idx + 1
             logger.info(f"Processing page {page_num}/{len(ocr_results)}")
 
-            # Find all matches
-            matches = list(pattern.finditer(ocr_text))
-            logger.debug(
-                f"Found {len(matches)} bounding boxes on page {page_num}"
-            )
+            # Parse all tags with their positions
+            tags = []
+            for match in tag_pattern.finditer(ocr_text):
+                ref_type = match.group(1).lower()
+                coords_str = match.group(2)
 
-            # Process matches in reverse to maintain string indices
-            processed_text = ocr_text
-            for match in reversed(matches):
-                # ref_text is "image" (from the pattern)
-                x1, y1, x2, y2 = map(int, match.groups()[1:])
+                # Parse first bbox (handle both single and multiple bboxes)
+                bbox_groups = coords_str.split("], [")
+                first_bbox_str = bbox_groups[0].replace("[", "").replace("]", "")
 
-                # Skip if bounding box looks invalid
-                if x1 >= x2 or y1 >= y2:
-                    logger.warning(
-                        f"Invalid bounding box: [{x1}, {y1}, {x2}, {y2}]"
-                    )
+                try:
+                    coords = [int(x.strip()) for x in first_bbox_str.split(",")]
+                    if len(coords) != 4:
+                        logger.warning(f"Invalid bbox format: {first_bbox_str}, skipping")
+                        continue
+                    x1, y1, x2, y2 = coords
+                except ValueError as e:
+                    logger.warning(f"Failed to parse bbox: {first_bbox_str}, error: {e}")
                     continue
 
-                # Crop image from page
-                image_filename = f"{image_counter}.jpg"
-                self._crop_and_save_image(
-                    page_images[page_idx],
-                    x1,
-                    y1,
-                    x2,
-                    y2,
-                    images_dir / image_filename,
-                )
+                tags.append({
+                    "type": ref_type,
+                    "bbox": (x1, y1, x2, y2),
+                    "start": match.start(),
+                    "end": match.end(),
+                })
 
-                # Replace the entire match with image tag
-                image_tag = f"<image:{image_filename}>"
-                processed_text = (
-                    processed_text[: match.start()]
-                    + image_tag
-                    + processed_text[match.end() :]
-                )
+            logger.debug(f"Found {len(tags)} ref-det tags on page {page_num}")
 
-                # Store metadata (will be updated with chunk_id later)
-                image_metadata[image_filename] = (-1, image_counter)
-                image_counter += 1
+            # Process tags in REVERSE order
+            processed_text = ocr_text
+
+            for tag_info in reversed(tags):
+                ref_type = tag_info["type"]
+                x1, y1, x2, y2 = tag_info["bbox"]
+                tag_start = tag_info["start"]
+                tag_end = tag_info["end"]
+
+                # Validate bounding box
+                if x1 >= x2 or y1 >= y2:
+                    logger.warning(f"Invalid bbox for {ref_type}: [[{x1}, {y1}, {x2}, {y2}]]")
+                    processed_text = processed_text[:tag_start] + processed_text[tag_end:]
+                    continue
+
+                # Handle material types
+                if ref_type == "image":
+                    material_filename = f"{material_counter}.jpg"
+                    self._crop_and_save_image(
+                        page_images[page_idx],
+                        x1, y1, x2, y2,
+                        materials_dir / material_filename,
+                    )
+
+                    # Replace tag with material reference
+                    replacement = f"<material:{material_filename}>"
+                    processed_text = (
+                        processed_text[:tag_start]
+                        + replacement
+                        + processed_text[tag_end:]
+                    )
+
+                    material_metadata[material_filename] = (-1, material_counter, "image")
+                    material_counter += 1
+
+                elif ref_type == "table":
+                    # Find <table>...</table> block near this tag
+                    table_text, table_start, table_end = self._find_table_block(
+                        processed_text, tag_start, tag_end
+                    )
+
+                    if table_text:
+                        material_filename = f"{material_counter}.txt"
+                        self._save_table_as_text(
+                            table_text,
+                            materials_dir / material_filename,
+                        )
+
+                        # Remove entire region (tag + table block)
+                        remove_start = min(tag_start, table_start)
+                        remove_end = max(tag_end, table_end)
+
+                        replacement = f"<material:{material_filename}>"
+                        processed_text = (
+                            processed_text[:remove_start]
+                            + replacement
+                            + processed_text[remove_end:]
+                        )
+
+                        material_metadata[material_filename] = (-1, material_counter, "table")
+                        material_counter += 1
+                    else:
+                        # No table block found, just remove tag
+                        logger.warning(f"No <table> block found for table tag at position {tag_start}")
+                        processed_text = processed_text[:tag_start] + processed_text[tag_end:]
+
+                else:
+                    # For title, sub_title, figure_title, text, etc.
+                    # Just remove the tag, keep the content
+                    processed_text = processed_text[:tag_start] + processed_text[tag_end:]
 
             combined_markdown += processed_text + "\n\n"
 
-        return combined_markdown, image_metadata
+        return combined_markdown, material_metadata
 
     def _crop_and_save_image(
         self,
@@ -205,11 +272,11 @@ class OCRParser:
     ) -> None:
         """Crop image using normalized coordinates and save as JPG.
 
-        Coordinates are in 0-999 range and need to be denormalized to image dimensions.
+        Coordinates are in 0-999 range and need to be denormalized.
         """
         width, height = page_image.size
 
-        # Denormalize coordinates
+        # Denormalize coordinates (0-999 -> pixel coordinates)
         pixel_x1 = int(x1 * width / 1000)
         pixel_y1 = int(y1 * height / 1000)
         pixel_x2 = int(x2 * width / 1000)
@@ -218,7 +285,45 @@ class OCRParser:
         # Crop and save
         cropped = page_image.crop((pixel_x1, pixel_y1, pixel_x2, pixel_y2))
         cropped.save(output_path, "JPEG", quality=95)
-        logger.debug(f"Saved cropped image: {output_path}")
+        logger.debug(f"Saved image: {output_path}")
+
+    def _find_table_block(
+        self, text: str, tag_start: int, tag_end: int
+    ) -> tuple[str, int, int]:
+        """Find <table>...</table> block immediately after the ref-det tag.
+
+        Returns:
+            Tuple of (table_content, block_start, block_end)
+            If not found, returns ("", -1, -1)
+        """
+        # Get text after the tag
+        remaining_text = text[tag_end:]
+
+        # Skip whitespace/newlines to find <table> start
+        stripped_start = len(remaining_text) - len(remaining_text.lstrip())
+        stripped_text = remaining_text.lstrip()
+
+        # Check if next non-whitespace content is <table>
+        if not stripped_text.lower().startswith("<table>"):
+            return "", -1, -1
+
+        # Find matching </table>
+        table_pattern = re.compile(r"^<table>(.*?)</table>", re.DOTALL | re.IGNORECASE)
+        table_match = table_pattern.match(stripped_text)
+
+        if table_match:
+            # Calculate absolute positions
+            block_start = tag_end + stripped_start
+            block_end = block_start + table_match.end()
+            table_content = table_match.group(1).strip()
+            return table_content, block_start, block_end
+
+        return "", -1, -1
+
+    def _save_table_as_text(self, table_text: str, output_path: Path) -> None:
+        """Save table content as text file."""
+        output_path.write_text(table_text, encoding="utf-8")
+        logger.debug(f"Saved table: {output_path}")
 
     def _chunk_markdown(
         self,
@@ -280,48 +385,68 @@ class OCRParser:
         self,
         chunks: list[str],
         chunks_dir: Path,
-        image_metadata: dict[str, tuple[int, int]],
+        material_metadata: dict[str, tuple[int, int, str]],
     ) -> None:
-        """Save chunks to individual markdown files and update image references.
+        """Save chunks to individual markdown files and update material references.
 
-        Also renames images to follow chunk_id_image_id.jpg pattern.
+        Renames materials to follow chunk_id_material_id[_caption].ext pattern.
         """
-        images_dir = chunks_dir.parent / "images"
+        materials_dir = chunks_dir.parent / "materials"
 
-        # First pass: assign chunk IDs to images
-        image_to_chunk: dict[str, int] = {}
+        # First pass: assign chunk IDs to materials
+        material_to_chunk: dict[str, int] = {}
         for chunk_idx, chunk_text in enumerate(chunks, start=1):
-            # Find all image references in this chunk
-            image_pattern = re.compile(r"<image:([\w\-.]+)>")
-            for match in image_pattern.finditer(chunk_text):
-                image_filename = match.group(1)
-                if image_filename in image_metadata:
-                    image_to_chunk[image_filename] = chunk_idx
+            # Find all material references in this chunk
+            material_pattern = re.compile(r"<material:([\w\-._]+)>")
+            for match in material_pattern.finditer(chunk_text):
+                material_filename = match.group(1)
+                if material_filename in material_metadata:
+                    material_to_chunk[material_filename] = chunk_idx
 
-        # Second pass: rename images and update chunk text
+        # Second pass: rename materials and update chunk text
         for chunk_idx, chunk_text in enumerate(chunks, start=1):
-            # Find and replace image references
-            image_pattern = re.compile(r"<image:([\w\-.]+)>")
+            # Find and replace material references
+            material_pattern = re.compile(r"<material:([\w\-._]+)>")
 
-            def replace_image_ref(match: re.Match) -> str:
+            def replace_material_ref(match: re.Match) -> str:
                 old_filename = match.group(1)
-                if old_filename in image_metadata:
-                    _, img_id = image_metadata[old_filename]
-                    new_filename = f"{chunk_idx}_{img_id}.jpg"
+                if old_filename in material_metadata:
+                    _, mat_id, _ = material_metadata[old_filename]
+
+                    # Extract extension and caption suffix from old filename
+                    old_path = Path(old_filename)
+                    extension = old_path.suffix
+                    stem = old_path.stem
+
+                    # Check if old filename has caption suffix
+                    # Pattern: {number}_{caption} or just {number}
+                    if "_" in stem:
+                        # Has caption: preserve it
+                        parts = stem.split("_", 1)
+                        caption_suffix = f"_{parts[1]}"
+                    else:
+                        caption_suffix = ""
+
+                    # Build new filename: chunk_id_mat_id[_caption].ext
+                    new_filename = (
+                        f"{chunk_idx}_{mat_id}{caption_suffix}{extension}"
+                    )
 
                     # Rename physical file
-                    old_path = images_dir / old_filename
-                    new_path = images_dir / new_filename
-                    if old_path.exists() and not new_path.exists():
-                        old_path.rename(new_path)
+                    old_path_full = materials_dir / old_filename
+                    new_path = materials_dir / new_filename
+                    if old_path_full.exists() and not new_path.exists():
+                        old_path_full.rename(new_path)
                         logger.debug(
                             f"Renamed {old_filename} -> {new_filename}"
                         )
 
-                    return f"<image:{new_filename}>"
+                    return f"<material:{new_filename}>"
                 return match.group(0)
 
-            updated_chunk = image_pattern.sub(replace_image_ref, chunk_text)
+            updated_chunk = material_pattern.sub(
+                replace_material_ref, chunk_text
+            )
 
             # Save chunk
             chunk_file = chunks_dir / f"{chunk_idx}.md"

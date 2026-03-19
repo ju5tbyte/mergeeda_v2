@@ -49,7 +49,7 @@ def main(cfg: DictConfig) -> None:
     logger.info("AMBA document parsing completed successfully")
     logger.info(f"Results saved to: {output_path}")
     logger.info(f"  - Chunks: {output_path / 'chunks'}")
-    logger.info(f"  - Images: {output_path / 'images'}")
+    logger.info(f"  - Materials: {output_path / 'materials'}")
 
 
 if __name__ == "__main__":
