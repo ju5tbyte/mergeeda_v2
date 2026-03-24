@@ -1,5 +1,6 @@
 """PDF OCR parsing module using DeepSeek-OCR with vLLM."""
 
+import html
 import logging
 import re
 from pathlib import Path
@@ -11,13 +12,16 @@ from vllm.model_executor.models.deepseek_ocr import NGramPerReqLogitsProcessor
 
 logger = logging.getLogger(__name__)
 
+COORD_NORMALIZATION_MAX = 999
+TABLE_SEARCH_WINDOW = 200
+
 
 class OCRParser:
     """Parse PDF documents to chunked markdown using DeepSeek-OCR."""
 
     def __init__(
         self,
-        model_name: str = "deepseek-ai/DeepSeek-OCR",
+        model_name: str = "deepseek-ai/DeepSeek-OCR-2",
         dpi: int = 300,
     ) -> None:
         """Initialize OCR parser with vLLM model."""
@@ -116,6 +120,12 @@ class OCRParser:
         sampling_params = SamplingParams(
             temperature=0.0,
             max_tokens=8192,
+            extra_args=dict(
+                ngram_size=30,
+                window_size=90,
+                whitelist_token_ids={128821, 128822},  # <td>, </td>
+            ),
+            skip_special_tokens=False,
         )
 
         outputs = self.llm.generate(model_inputs, sampling_params)
@@ -127,23 +137,7 @@ class OCRParser:
         page_images: list[Image.Image],
         materials_dir: Path,
     ) -> tuple[str, dict[str, tuple[int, int, str]]]:
-        """Extract materials (images, tables) from OCR results and replace with tags.
-
-        DeepSeek-OCR returns structured output with ref-det tags:
-        <|ref|>TYPE<|/ref|><|det|>[[x1, y1, x2, y2]]<|/det|>
-
-        Strategy:
-        1. Parse all ref-det tags from original text
-        2. Process in REVERSE order to avoid index shifting
-        3. For images: crop and save from page image, replace tag with <material:...>
-        4. For tables: find <table>...</table> block, save as text, replace with <material:...>
-        5. For others (title, text, etc.): just remove the tag, keep content
-
-        Returns:
-            Tuple of (processed markdown text, material metadata mapping)
-            material_metadata maps material filename to (chunk_id, material_id, material_type)
-        """
-        # Pattern to match: <|ref|>TYPE<|/ref|><|det|>[[...]]<|/det|>
+        """Extract materials (images, tables) from OCR results and replace with tags."""
         tag_pattern = re.compile(
             r"<\|ref\|>(\w+)<\|/ref\|><\|det\|>\[\[([^\]]+(?:\],\s*\[[^\]]+)*)\]\]<\|/det\|>",
             re.IGNORECASE,
@@ -163,26 +157,28 @@ class OCRParser:
                 ref_type = match.group(1).lower()
                 coords_str = match.group(2)
 
-                # Parse first bbox (handle both single and multiple bboxes)
-                bbox_groups = coords_str.split("], [")
-                first_bbox_str = bbox_groups[0].replace("[", "").replace("]", "")
-
                 try:
-                    coords = [int(x.strip()) for x in first_bbox_str.split(",")]
+                    coords = [int(x.strip()) for x in coords_str.split(",")]
                     if len(coords) != 4:
-                        logger.warning(f"Invalid bbox format: {first_bbox_str}, skipping")
+                        logger.warning(
+                            f"Invalid bbox format: {coords_str}, skipping"
+                        )
                         continue
                     x1, y1, x2, y2 = coords
                 except ValueError as e:
-                    logger.warning(f"Failed to parse bbox: {first_bbox_str}, error: {e}")
+                    logger.warning(
+                        f"Failed to parse bbox: {coords_str}, error: {e}"
+                    )
                     continue
 
-                tags.append({
-                    "type": ref_type,
-                    "bbox": (x1, y1, x2, y2),
-                    "start": match.start(),
-                    "end": match.end(),
-                })
+                tags.append(
+                    {
+                        "type": ref_type,
+                        "bbox": (x1, y1, x2, y2),
+                        "start": match.start(),
+                        "end": match.end(),
+                    }
+                )
 
             logger.debug(f"Found {len(tags)} ref-det tags on page {page_num}")
 
@@ -195,34 +191,39 @@ class OCRParser:
                 tag_start = tag_info["start"]
                 tag_end = tag_info["end"]
 
-                # Validate bounding box
                 if x1 >= x2 or y1 >= y2:
-                    logger.warning(f"Invalid bbox for {ref_type}: [[{x1}, {y1}, {x2}, {y2}]]")
-                    processed_text = processed_text[:tag_start] + processed_text[tag_end:]
+                    logger.warning(
+                        f"Invalid bbox for {ref_type}: [[{x1}, {y1}, {x2}, {y2}]]"
+                    )
+                    processed_text = self._replace_text_range(
+                        processed_text, tag_start, tag_end
+                    )
                     continue
 
-                # Handle material types
                 if ref_type == "image":
                     material_filename = f"{material_counter}.jpg"
                     self._crop_and_save_image(
                         page_images[page_idx],
-                        x1, y1, x2, y2,
+                        x1,
+                        y1,
+                        x2,
+                        y2,
                         materials_dir / material_filename,
                     )
 
-                    # Replace tag with material reference
                     replacement = f"<material:{material_filename}>"
-                    processed_text = (
-                        processed_text[:tag_start]
-                        + replacement
-                        + processed_text[tag_end:]
+                    processed_text = self._replace_text_range(
+                        processed_text, tag_start, tag_end, replacement
                     )
 
-                    material_metadata[material_filename] = (-1, material_counter, "image")
+                    material_metadata[material_filename] = (
+                        -1,
+                        material_counter,
+                        "image",
+                    )
                     material_counter += 1
 
                 elif ref_type == "table":
-                    # Find <table>...</table> block near this tag
                     table_text, table_start, table_end = self._find_table_block(
                         processed_text, tag_start, tag_end
                     )
@@ -234,28 +235,32 @@ class OCRParser:
                             materials_dir / material_filename,
                         )
 
-                        # Remove entire region (tag + table block)
                         remove_start = min(tag_start, table_start)
                         remove_end = max(tag_end, table_end)
 
                         replacement = f"<material:{material_filename}>"
-                        processed_text = (
-                            processed_text[:remove_start]
-                            + replacement
-                            + processed_text[remove_end:]
+                        processed_text = self._replace_text_range(
+                            processed_text, remove_start, remove_end, replacement
                         )
 
-                        material_metadata[material_filename] = (-1, material_counter, "table")
+                        material_metadata[material_filename] = (
+                            -1,
+                            material_counter,
+                            "table",
+                        )
                         material_counter += 1
                     else:
-                        # No table block found, just remove tag
-                        logger.warning(f"No <table> block found for table tag at position {tag_start}")
-                        processed_text = processed_text[:tag_start] + processed_text[tag_end:]
+                        logger.warning(
+                            f"No <table> block found for table tag at position {tag_start}"
+                        )
+                        processed_text = self._replace_text_range(
+                            processed_text, tag_start, tag_end
+                        )
 
                 else:
-                    # For title, sub_title, figure_title, text, etc.
-                    # Just remove the tag, keep the content
-                    processed_text = processed_text[:tag_start] + processed_text[tag_end:]
+                    processed_text = self._replace_text_range(
+                        processed_text, tag_start, tag_end
+                    )
 
             combined_markdown += processed_text + "\n\n"
 
@@ -270,50 +275,45 @@ class OCRParser:
         y2: int,
         output_path: Path,
     ) -> None:
-        """Crop image using normalized coordinates and save as JPG.
-
-        Coordinates are in 0-999 range and need to be denormalized.
-        """
+        """Crop image using normalized coordinates and save as JPG."""
         width, height = page_image.size
 
-        # Denormalize coordinates (0-999 -> pixel coordinates)
-        pixel_x1 = int(x1 * width / 1000)
-        pixel_y1 = int(y1 * height / 1000)
-        pixel_x2 = int(x2 * width / 1000)
-        pixel_y2 = int(y2 * height / 1000)
+        pixel_x1 = int(x1 * width / COORD_NORMALIZATION_MAX)
+        pixel_y1 = int(y1 * height / COORD_NORMALIZATION_MAX)
+        pixel_x2 = int(x2 * width / COORD_NORMALIZATION_MAX)
+        pixel_y2 = int(y2 * height / COORD_NORMALIZATION_MAX)
 
-        # Crop and save
         cropped = page_image.crop((pixel_x1, pixel_y1, pixel_x2, pixel_y2))
         cropped.save(output_path, "JPEG", quality=95)
         logger.debug(f"Saved image: {output_path}")
 
+    def _replace_text_range(
+        self, text: str, start: int, end: int, replacement: str = ""
+    ) -> str:
+        """Replace text range with replacement string."""
+        return text[:start] + replacement + text[end:]
+
     def _find_table_block(
         self, text: str, tag_start: int, tag_end: int
     ) -> tuple[str, int, int]:
-        """Find <table>...</table> block immediately after the ref-det tag.
+        """Find <table>...</table> block after the ref-det tag."""
+        search_window = text[tag_end : tag_end + TABLE_SEARCH_WINDOW]
 
-        Returns:
-            Tuple of (table_content, block_start, block_end)
-            If not found, returns ("", -1, -1)
-        """
-        # Get text after the tag
-        remaining_text = text[tag_end:]
+        table_start_match = re.search(r"<table>", search_window, re.IGNORECASE)
 
-        # Skip whitespace/newlines to find <table> start
-        stripped_start = len(remaining_text) - len(remaining_text.lstrip())
-        stripped_text = remaining_text.lstrip()
-
-        # Check if next non-whitespace content is <table>
-        if not stripped_text.lower().startswith("<table>"):
+        if not table_start_match:
             return "", -1, -1
 
-        # Find matching </table>
-        table_pattern = re.compile(r"^<table>(.*?)</table>", re.DOTALL | re.IGNORECASE)
-        table_match = table_pattern.match(stripped_text)
+        table_abs_start = tag_end + table_start_match.start()
+
+        remaining_text = text[table_abs_start:]
+        table_pattern = re.compile(
+            r"<table>(.*?)</table>", re.DOTALL | re.IGNORECASE
+        )
+        table_match = table_pattern.match(remaining_text)
 
         if table_match:
-            # Calculate absolute positions
-            block_start = tag_end + stripped_start
+            block_start = table_abs_start
             block_end = block_start + table_match.end()
             table_content = table_match.group(1).strip()
             return table_content, block_start, block_end
@@ -322,8 +322,48 @@ class OCRParser:
 
     def _save_table_as_text(self, table_text: str, output_path: Path) -> None:
         """Save table content as text file."""
+        table_text = self._html_table_to_markdown(table_text)
         output_path.write_text(table_text, encoding="utf-8")
         logger.debug(f"Saved table: {output_path}")
+
+    def _html_table_to_markdown(self, table_html: str) -> str:
+        """Convert HTML table to markdown table format."""
+        rows = []
+
+        # Extract table rows
+        tr_pattern = r"<tr>(.*?)</tr>"
+        td_pattern = r"<td[^>]*>(.*?)</td>"
+
+        for tr_match in re.finditer(
+            tr_pattern, table_html, re.IGNORECASE | re.DOTALL
+        ):
+            row_content = tr_match.group(1)
+            cells = []
+            for td_match in re.finditer(
+                td_pattern, row_content, re.IGNORECASE | re.DOTALL
+            ):
+                cell_content = td_match.group(1).strip()
+                # Unescape HTML entities
+                cell_content = html.unescape(cell_content)
+                # Remove newlines within cells
+                cell_content = cell_content.replace("\n", " ")
+                cells.append(cell_content)
+            if cells:
+                rows.append(cells)
+
+        if not rows:
+            logger.warning("Failed to parse HTML table, returning original")
+            return table_html
+
+        markdown_rows = []
+        for i, row in enumerate(rows):
+            markdown_row = "| " + " | ".join(row) + " |"
+            markdown_rows.append(markdown_row)
+            if i == 0:
+                separator = "| " + " | ".join(["---"] * len(row)) + " |"
+                markdown_rows.append(separator)
+
+        return "\n".join(markdown_rows)
 
     def _chunk_markdown(
         self,
@@ -331,26 +371,13 @@ class OCRParser:
         chunk_level: int,
         level_patterns: list[str] | None = None,
     ) -> list[str]:
-        """Chunk markdown by heading level based on section numbering.
-
-        Args:
-            markdown_text: Full markdown text
-            chunk_level: Number of dots in section numbers to split on (e.g., 3 for "1.2.3")
-            level_patterns: Custom regex patterns for each level (default: dot-separated numbers)
-
-        Returns:
-            List of markdown chunks
-        """
+        """Chunk markdown by heading level based on section numbering."""
         lines = markdown_text.split("\n")
 
-        # Build default pattern if not provided
         if level_patterns is None:
-            # Default: match patterns like "1.2.3" (level 3), "B3.1" (level 2), etc.
-            # Count dots to determine level
-            default_pattern = r"^#{1,6}\s+(?:[A-Z])?(\d+(?:\.\d+)*)"
+            default_pattern = r"^#{1,6}\s+(?:\w+\s+)?([A-Z]?\d+(?:\.\d+)*)"
             level_patterns = [default_pattern]
 
-        # Pattern to extract section numbers
         heading_pattern = re.compile(level_patterns[0])
 
         chunks: list[list[str]] = []
@@ -359,13 +386,10 @@ class OCRParser:
         for line in lines:
             match = heading_pattern.match(line)
             if match:
-                # Extract section number (e.g., "1.2.3" or "3.1")
                 section_num = match.group(1)
-                # Count dots to determine level
                 dots_count = section_num.count(".")
                 current_level = dots_count + 1
 
-                # If this is a heading at or above chunk_level, start new chunk
                 if current_level <= chunk_level:
                     if current_chunk:
                         chunks.append(current_chunk)
@@ -375,11 +399,43 @@ class OCRParser:
             else:
                 current_chunk.append(line)
 
-        # Add last chunk
         if current_chunk:
             chunks.append(current_chunk)
 
         return ["\n".join(chunk) for chunk in chunks]
+
+    def _rename_material_file(
+        self,
+        old_filename: str,
+        chunk_idx: int,
+        material_metadata: dict[str, tuple[int, int, str]],
+        materials_dir: Path,
+    ) -> str:
+        """Rename material file and return new filename."""
+        if old_filename not in material_metadata:
+            return old_filename
+
+        _, mat_id, _ = material_metadata[old_filename]
+
+        old_path = Path(old_filename)
+        extension = old_path.suffix
+        stem = old_path.stem
+
+        if "_" in stem:
+            parts = stem.split("_", 1)
+            caption_suffix = f"_{parts[1]}"
+        else:
+            caption_suffix = ""
+
+        new_filename = f"{chunk_idx}_{mat_id}{caption_suffix}{extension}"
+
+        old_path_full = materials_dir / old_filename
+        new_path = materials_dir / new_filename
+        if old_path_full.exists() and not new_path.exists():
+            old_path_full.rename(new_path)
+            logger.debug(f"Renamed {old_filename} -> {new_filename}")
+
+        return new_filename
 
     def _save_chunks(
         self,
@@ -387,68 +443,16 @@ class OCRParser:
         chunks_dir: Path,
         material_metadata: dict[str, tuple[int, int, str]],
     ) -> None:
-        """Save chunks to individual markdown files and update material references.
-
-        Renames materials to follow chunk_id_material_id[_caption].ext pattern.
-        """
+        """Save chunks to individual markdown files and update material references."""
         materials_dir = chunks_dir.parent / "materials"
+        material_pattern = re.compile(r"<material:([\w\-._]+)>")
 
-        # First pass: assign chunk IDs to materials
-        material_to_chunk: dict[str, int] = {}
         for chunk_idx, chunk_text in enumerate(chunks, start=1):
-            # Find all material references in this chunk
-            material_pattern = re.compile(r"<material:([\w\-._]+)>")
-            for match in material_pattern.finditer(chunk_text):
-                material_filename = match.group(1)
-                if material_filename in material_metadata:
-                    material_to_chunk[material_filename] = chunk_idx
-
-        # Second pass: rename materials and update chunk text
-        for chunk_idx, chunk_text in enumerate(chunks, start=1):
-            # Find and replace material references
-            material_pattern = re.compile(r"<material:([\w\-._]+)>")
-
-            def replace_material_ref(match: re.Match) -> str:
-                old_filename = match.group(1)
-                if old_filename in material_metadata:
-                    _, mat_id, _ = material_metadata[old_filename]
-
-                    # Extract extension and caption suffix from old filename
-                    old_path = Path(old_filename)
-                    extension = old_path.suffix
-                    stem = old_path.stem
-
-                    # Check if old filename has caption suffix
-                    # Pattern: {number}_{caption} or just {number}
-                    if "_" in stem:
-                        # Has caption: preserve it
-                        parts = stem.split("_", 1)
-                        caption_suffix = f"_{parts[1]}"
-                    else:
-                        caption_suffix = ""
-
-                    # Build new filename: chunk_id_mat_id[_caption].ext
-                    new_filename = (
-                        f"{chunk_idx}_{mat_id}{caption_suffix}{extension}"
-                    )
-
-                    # Rename physical file
-                    old_path_full = materials_dir / old_filename
-                    new_path = materials_dir / new_filename
-                    if old_path_full.exists() and not new_path.exists():
-                        old_path_full.rename(new_path)
-                        logger.debug(
-                            f"Renamed {old_filename} -> {new_filename}"
-                        )
-
-                    return f"<material:{new_filename}>"
-                return match.group(0)
-
             updated_chunk = material_pattern.sub(
-                replace_material_ref, chunk_text
+                lambda m: f"<material:{self._rename_material_file(m.group(1), chunk_idx, material_metadata, materials_dir)}>",
+                chunk_text,
             )
 
-            # Save chunk
             chunk_file = chunks_dir / f"{chunk_idx}.md"
             chunk_file.write_text(updated_chunk, encoding="utf-8")
             logger.debug(f"Saved chunk {chunk_idx}: {chunk_file}")
