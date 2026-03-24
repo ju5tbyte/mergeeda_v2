@@ -375,7 +375,7 @@ class OCRParser:
         lines = markdown_text.split("\n")
 
         if level_patterns is None:
-            default_pattern = r"^#{1,6}\s+(?:\w+\s+)?([A-Z]?\d+(?:\.\d+)*)"
+            default_pattern = r"^#{1,6}\s+(?:\w+\s+)?((?:[A-Z]\d+|\d+)(?:\.\d+)*)(?:\s|$)"
             level_patterns = [default_pattern]
 
         heading_pattern = re.compile(level_patterns[0])
