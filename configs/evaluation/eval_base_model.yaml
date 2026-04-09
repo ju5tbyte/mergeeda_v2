@@ -1,7 +1,7 @@
 # Configuration for base model evaluation
 
 defaults:
-  - /model: qwen_vl_model
+  - model: qwen_vl_model
 
 # Hydra output directory configuration
 hydra:
@@ -9,13 +9,13 @@ hydra:
     dir: data/outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 # Input: directory containing evaluation QA JSON files
-qa_dir: "data/datasets/amba_document/eval_qa/ARM_IHI_0088H_amba_dti_protocol_spec"
+qa_dir: "data/datasets/amba_document/eval_qa/IHI0022L_amba_axi_protocol_spec"
 
 # Input: directory containing extracted material files (images, tables)
-materials_dir: "data/datasets/amba_document/processed/ARM_IHI_0088H_amba_dti_protocol_spec/materials"
+materials_dir: "data/datasets/amba_document/processed/IHI0022L_amba_axi_protocol_spec/materials"
 
 # Input: directory containing source chunk text files (for LLM judge context)
-chunks_dir: "data/datasets/amba_document/processed/ARM_IHI_0088H_amba_dti_protocol_spec/chunks"
+chunks_dir: "data/datasets/amba_document/processed/IHI0022L_amba_axi_protocol_spec/chunks"
 
 # Output directory for preds.json and scores.json
 output_dir: "data/evaluation/base_model"
