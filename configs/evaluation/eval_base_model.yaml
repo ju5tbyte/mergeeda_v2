@@ -18,7 +18,7 @@ materials_dir: "data/datasets/amba_document/processed/ARM_IHI_0088H_amba_dti_pro
 chunks_dir: "data/datasets/amba_document/processed/ARM_IHI_0088H_amba_dti_protocol_spec/chunks"
 
 # Output directory for preds.json and scores.json
-output_dir: "data/outputs/evaluation/base_model"
+output_dir: "data/evaluation/base_model"
 
 # LLM judge model configuration (OpenAI)
 judge:
