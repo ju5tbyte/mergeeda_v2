@@ -91,7 +91,15 @@ class QwenVLModel:
 
             content.append({"type": "text", "text": question})
 
-            messages = [{"role": "user", "content": content}]
+            system_prompt = (
+                "Answer in plain text only. "
+                "Do not use markdown formatting such as headers, bullet points, bold, or italics. "
+                "LaTeX math expressions and code blocks are allowed."
+            )
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": content},
+            ]
 
             inputs = self.processor.apply_chat_template(
                 messages,
