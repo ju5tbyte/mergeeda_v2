@@ -97,7 +97,7 @@ class QwenVLModel:
                 "LaTeX math expressions and code blocks are allowed."
             )
             messages = [
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": [{"type": "text", "text": system_prompt}]},
                 {"role": "user", "content": content},
             ]
 
