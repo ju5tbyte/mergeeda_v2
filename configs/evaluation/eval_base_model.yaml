@@ -18,7 +18,11 @@ materials_dir: "data/datasets/amba_document/processed/IHI0022L_amba_axi_protocol
 chunks_dir: "data/datasets/amba_document/processed/IHI0022L_amba_axi_protocol_spec/chunks"
 
 # Output directory for preds.json and scores.json
-output_dir: "data/evaluation/base_model"
+output_dir: "data/evaluation/base_model_rag/IHI0022L_amba_axi_protocol_spec"
+
+# If true, prepend "Specification: <source chunk content>" to each question
+# using the markdown file referenced by item["source_chunk"] in chunks_dir.
+include_specification: true
 
 # LLM judge model configuration (OpenAI)
 judge:

@@ -27,6 +27,7 @@ def main(cfg: DictConfig) -> None:
     logger.info(f"Output directory: {cfg.output_dir}")
     logger.info(f"Model: {cfg.model.name}")
     logger.info(f"Judge model: {cfg.judge.name}")
+    logger.info(f"Include specification in prompt: {cfg.include_specification}")
 
     original_cwd = Path(get_original_cwd())
     qa_path = original_cwd / cfg.qa_dir
@@ -48,6 +49,8 @@ def main(cfg: DictConfig) -> None:
         qa_dir=qa_path,
         materials_dir=materials_path,
         output_path=output_path,
+        chunks_dir=chunks_path,
+        include_specification=cfg.include_specification,
     )
     logger.info("Answer generation completed")
 

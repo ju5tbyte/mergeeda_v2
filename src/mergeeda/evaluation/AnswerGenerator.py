@@ -3,6 +3,7 @@
 import base64
 import json
 import logging
+import re
 from pathlib import Path
 
 from PIL import Image
@@ -35,17 +36,27 @@ class AnswerGenerator:
         qa_dir: str | Path,
         materials_dir: str | Path,
         output_path: str | Path,
+        chunks_dir: str | Path | None = None,
+        include_specification: bool = False,
     ) -> None:
         """Generate answers for all QA JSON files in qa_dir and save preds.json.
 
         Iterates over all .json files in qa_dir sorted by filename, assigns
         sequential IDs across files (ascending filename order, then original
         order within each file), queries the model, and writes preds.json.
+
+        When include_specification is True, the content of the source chunk
+        markdown file (resolved from chunks_dir using the item's source_chunk
+        field) is prepended to the question as "Specification: ...".
         """
         qa_dir = Path(qa_dir)
         materials_dir = Path(materials_dir)
         output_path = Path(output_path)
         output_path.mkdir(parents=True, exist_ok=True)
+
+        if include_specification and chunks_dir is None:
+            raise ValueError("chunks_dir must be provided when include_specification is True")
+        chunks_path: Path | None = Path(chunks_dir) if chunks_dir is not None else None
 
         json_files = sorted(qa_dir.glob("*.json"), key=lambda p: p.name)
         if not json_files:
@@ -62,7 +73,12 @@ class AnswerGenerator:
 
         results: list[dict] = []
         for idx, item in enumerate(tqdm(all_items, desc="Generating answers"), start=1):
-            answer = self._query_model(item, materials_dir)
+            answer = self._query_model(
+                item,
+                materials_dir,
+                chunks_dir=chunks_path,
+                include_specification=include_specification,
+            )
             result = {k: v for k, v in item.items()}
             result["id"] = idx
             result["answer"] = answer
@@ -91,20 +107,53 @@ class AnswerGenerator:
             logger.error(f"Failed to load {json_file.name}: {e}")
             return []
 
-    def _query_model(self, item: dict, materials_dir: Path) -> str:
+    def _query_model(
+        self,
+        item: dict,
+        materials_dir: Path,
+        chunks_dir: Path | None = None,
+        include_specification: bool = False,
+    ) -> str:
         """Query the model with a question and optional material images.
 
-        For material-type questions, loads the referenced image file (if it is
-        an image) to pass as visual context. Table (.txt) materials are
-        appended as text to the question.
+        When include_specification is False, material-type questions load the
+        referenced image file (if it is an image) to pass as visual context,
+        and table (.txt) materials are appended as text to the question.
+
+        When include_specification is True, the source chunk markdown
+        referenced by item["source_chunk"] is prepended to the question as
+        "Specification: ...", with any <material:filename> tags inside the
+        chunk resolved via _resolve_chunk_materials. In this mode the
+        item["material"] field is ignored because the chunk already embeds
+        the relevant material at its original location.
         """
         question = item.get("question", "")
         material_filename: str | None = item.get("material")
 
         imgs: list[Image.Image] = []
         extra_text = ""
+        spec_prefix = ""
 
-        if material_filename:
+        if include_specification and chunks_dir is not None:
+            source_chunk: str | None = item.get("source_chunk")
+            if not source_chunk:
+                logger.warning("include_specification is enabled but item has no 'source_chunk' field")
+            else:
+                chunk_path = chunks_dir / source_chunk
+                if not chunk_path.exists():
+                    logger.warning(f"Source chunk file not found: {chunk_path}")
+                else:
+                    try:
+                        chunk_text = chunk_path.read_text(encoding="utf-8")
+                        resolved_text, chunk_imgs = self._resolve_chunk_materials(
+                            chunk_text, materials_dir
+                        )
+                        spec_prefix = f"Specification: {resolved_text}\n\n"
+                        imgs.extend(chunk_imgs)
+                    except OSError as e:
+                        logger.warning(f"Failed to read chunk {chunk_path}: {e}")
+
+        if material_filename and not include_specification:
             material_path = materials_dir / material_filename
             if not material_path.exists():
                 logger.warning(f"Material file not found: {material_path}")
@@ -124,7 +173,7 @@ class AnswerGenerator:
                 else:
                     logger.warning(f"Unsupported material type, skipping: {material_filename}")
 
-        full_question = question + extra_text
+        full_question = spec_prefix + question + extra_text
 
         try:
             answer = self._model(full_question, imgs if imgs else None)
@@ -133,3 +182,43 @@ class AnswerGenerator:
             answer = ""
 
         return answer
+
+    def _resolve_chunk_materials(
+        self,
+        chunk_text: str,
+        materials_dir: Path,
+    ) -> tuple[str, list[Image.Image]]:
+        """Resolve <material:filename> tags inside a chunk.
+
+        Table (.txt) tags are replaced in place with the file contents.
+        Image tags are removed from the text and the images are returned
+        separately to be passed to the vision model.
+        """
+        image_suffixes = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+        imgs: list[Image.Image] = []
+
+        def replace(match: re.Match[str]) -> str:
+            filename = match.group(1).strip()
+            material_path = materials_dir / filename
+            if not material_path.exists():
+                logger.warning(f"Chunk material not found: {material_path}")
+                return ""
+
+            suffix = material_path.suffix.lower()
+            if suffix == ".txt":
+                try:
+                    return material_path.read_text(encoding="utf-8")
+                except OSError as e:
+                    logger.warning(f"Failed to read chunk table {material_path}: {e}")
+                    return ""
+            if suffix in image_suffixes:
+                try:
+                    imgs.append(Image.open(material_path).convert("RGB"))
+                except OSError as e:
+                    logger.warning(f"Failed to open chunk image {material_path}: {e}")
+                return ""
+            logger.warning(f"Unsupported chunk material type, skipping: {filename}")
+            return ""
+
+        resolved = re.sub(r"<material:([^>]+)>", replace, chunk_text)
+        return resolved, imgs
