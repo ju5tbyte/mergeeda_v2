@@ -6,16 +6,16 @@ hydra:
     dir: data/outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 # Input: directory containing chunked markdown files
-chunks_dir: "data/datasets/amba_document/processed/ARM_IHI_0088H_amba_dti_protocol_spec/chunks"
+chunks_dir: "data/datasets/amba_document/processed/IHI0050H_amba_chi_architecture_spec/chunks"
 
 # Input: directory containing extracted material files (images, tables)
-materials_dir: "data/datasets/amba_document/processed/ARM_IHI_0088H_amba_dti_protocol_spec/materials"
+materials_dir: "data/datasets/amba_document/processed/IHI0050H_amba_chi_architecture_spec/materials"
 
 # Output directory for generated QA JSON files
-output_dir: "data/datasets/amba_document/eval_qa/ARM_IHI_0088H_amba_dti_protocol_spec"
+output_dir: "data/datasets/amba_document/eval_qa/IHI0050H_amba_chi_architecture_spec"
 
 # Output file base name; files will be saved as {output_name}_{type}.json
-output_name: "amba_dti_eval_qa"
+output_name: "amba_chi_architecture_spec"
 
 # OpenAI model to use for question generation
 model:

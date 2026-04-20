@@ -58,7 +58,7 @@ class AnswerGenerator:
             raise ValueError("chunks_dir must be provided when include_specification is True")
         chunks_path: Path | None = Path(chunks_dir) if chunks_dir is not None else None
 
-        json_files = sorted(qa_dir.glob("*.json"), key=lambda p: p.name)
+        json_files = sorted(qa_dir.glob("*_test.json"), key=lambda p: p.name)
         if not json_files:
             logger.warning(f"No .json files found in: {qa_dir}")
             return

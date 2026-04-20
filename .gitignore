@@ -9,7 +9,9 @@ dist/
 build/
 
 /external/
-/data/
+/data/*
+!/data/evaluation/
+!/data/evaluation/**
 checkpoints/
 outputs/
 *.bin
@@ -21,3 +23,5 @@ outputs/
 
 .vscode/settings.json
 .idea/
+
+*.out

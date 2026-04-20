@@ -1,0 +1,680 @@
+[
+  {
+    "id": 1,
+    "type": "concept",
+    "question": "In the AMBA Specification Licence, what is meant by a 'Subsidiary' of the Licensee?",
+    "source_chunk": "1.md",
+    "answer": "A \"Subsidiary\" of the Licensee means, if the Licensee is a single entity, any company the majority of whose voting shares is now or hereafter owned or controlled, directly or indirectly, by the Licensee. A company shall be a Subsidiary only for the period during which such control exists."
+  },
+  {
+    "id": 2,
+    "type": "concept",
+    "question": "In the described signal conventions, what does it mean when a signal name begins or ends with a lower-case 'n'?",
+    "source_chunk": "11.md",
+    "answer": "It denotes an active-LOW signal."
+  },
+  {
+    "id": 3,
+    "type": "concept",
+    "question": "What is the purpose of the PREADY and PSLVERR signals in the AMBA 3 APB (APB3) specification?",
+    "source_chunk": "13.md",
+    "answer": "The PREADY signal indicates that the APB bus master has completed the current transfer, and the slave is ready to accept the next transaction. The PSLVERR signal indicates that the slave has detected an error during the current transfer and cannot complete it successfully."
+  },
+  {
+    "id": 4,
+    "type": "concept",
+    "question": "Which interface signals were introduced with the AMBA APB (APB4) specification to support transaction protection and sparse data transfer, and what does each one do?",
+    "source_chunk": "13.md",
+    "answer": "The interface signals introduced with the AMBA APB (APB4) specification to support transaction protection and sparse data transfer are:\n\nPPROT — This is a protection signal used to support both non-secure and secure transactions on APB.\n\nPSTRB — This is a write strobe signal that enables sparse data transfer on the write data bus."
+  },
+  {
+    "id": 5,
+    "type": "concept",
+    "question": "What is the primary purpose of the AMBA APB (Advanced Peripheral Bus) protocol in a system-on-chip design?",
+    "source_chunk": "15.md",
+    "answer": "The primary purpose of the AMBA APB (Advanced Peripheral Bus) protocol in a system-on-chip design is to provide a low-cost, simple, synchronous interface optimized for minimal power consumption and reduced interface complexity, specifically for accessing programmable control registers of peripheral devices."
+  },
+  {
+    "id": 6,
+    "type": "concept",
+    "question": "In the context of the APB protocol, what roles do the terms 'Requester' and 'Completer' refer to?",
+    "source_chunk": "15.md",
+    "answer": "In the context of the APB protocol, 'Requester' refers to the APB bridge that initiates transfers, and 'Completer' refers to the APB peripheral that responds to those requests."
+  },
+  {
+    "id": 7,
+    "type": "concept",
+    "question": "In an AMBA APB interface, what is the function of the PWRITE signal and how does its logic level distinguish between read and write accesses?",
+    "source_chunk": "17.md",
+    "answer": "The PWRITE signal indicates the direction of the APB transaction. When PWRITE is HIGH, it signifies a write access; when PWRITE is LOW, it signifies a read access."
+  },
+  {
+    "id": 8,
+    "type": "concept",
+    "question": "In an APB interface, what does the PADDR signal represent and how is it used in read and write transfers?",
+    "source_chunk": "18.md",
+    "answer": "The PADDR signal represents a single address bus used for both read and write transfers in an APB interface. It indicates a byte address, meaning it specifies the location of a byte within memory or peripheral space. PADDR can be unaligned with respect to the data width, but the behavior of the system in such cases is unpredictable — the Completer may use the unaligned address, align it, or return an error response."
+  },
+  {
+    "id": 9,
+    "type": "concept",
+    "question": "In an APB-based system, why must the PRDATA (read data) and PWDATA (write data) buses have the same width, and what are the typical supported widths?",
+    "source_chunk": "19.md",
+    "answer": "The PRDATA and PWDATA buses must have the same width to ensure compatibility and consistency in data transfer operations. Since the APB protocol does not support concurrent read and write operations, the same bus width ensures that the master can correctly interpret and handle data regardless of whether it is reading or writing. This uniformity simplifies the protocol design and avoids ambiguity in data alignment and interpretation.\n\nThe typical supported widths are 8 bits, 16 bits, or 32 bits."
+  },
+  {
+    "id": 10,
+    "type": "concept",
+    "question": "In the context of bus transactions, what is a write transfer and how does it differ from a read transfer?",
+    "source_chunk": "21.md",
+    "answer": "A write transfer is a bus transaction in which data is sent from the master (such as a processor) to a slave (such as memory or peripheral) for storage or processing. During a write transfer, the master asserts the write enable signal, provides the target address, and sends the data to be written. The slave acknowledges receipt of the data, typically by driving a valid signal or by completing the write operation.\n\nIn contrast, a read transfer is a bus transaction in which the master requests data from a slave. The master provides an address, and the slave responds by placing the requested data onto the data bus for the master to read. The key difference is the direction of data flow: write transfers move data from master to slave, while read transfers move data from slave to master.\n\nBoth types of transfers are typically synchronized to a clock signal (e.g., PCLK), and may include wait states to accommodate slower slaves or to ensure timing constraints are met. Write transfers can be performed with or without wait states, depending on the system design and the speed of the target device."
+  },
+  {
+    "id": 11,
+    "type": "concept",
+    "question": "What are wait states in a bus write transfer, and why might they be introduced into a transfer cycle?",
+    "source_chunk": "21.md",
+    "answer": "Wait states in a bus write transfer are additional clock cycles inserted between the initiation of the write operation and the completion of the write operation to the target memory or device. These extra cycles are inserted to accommodate slower memory or peripheral devices that cannot respond quickly enough to the bus timing requirements.\n\nWait states are introduced to ensure data integrity and proper timing. If the target device is slower than the bus clock speed, it may not be ready to accept or process the data during the initial clock cycle. By inserting wait states, the bus master (e.g., CPU or DMA controller) allows sufficient time for the target to become ready, preventing data corruption or bus timing violations.\n\nIn essence, wait states act as a synchronization mechanism to bridge the speed gap between the fast bus and slower memory or peripheral components, ensuring reliable communication."
+  },
+  {
+    "id": 12,
+    "type": "concept",
+    "question": "During the Setup phase of an APB write transfer with no wait states, which signals must be valid when the select signal PSEL is asserted, and why?",
+    "source_chunk": "22.md",
+    "answer": "During the Setup phase of an APB write transfer with no wait states, when the select signal PSEL is asserted, the signals PADDR, PWRITE, and PWDATA must be valid. This is because the PSEL signal indicates that the master is initiating a transaction and the slave should expect to receive these signals to determine the target address, the direction of the transfer (write), and the data to be written. These signals must be stable and valid before the Access phase begins, ensuring the slave can correctly interpret and prepare for the upcoming write operation."
+  },
+  {
+    "id": 13,
+    "type": "concept",
+    "question": "During an APB write transfer with wait states, which signal does the Completer drive LOW to extend the transfer while PENABLE is HIGH?",
+    "source_chunk": "23.md",
+    "answer": "PREADY"
+  },
+  {
+    "id": 14,
+    "type": "concept",
+    "question": "In a bus protocol that uses write strobes, what does it mean when a particular PSTRB bit is asserted HIGH during a write transfer?",
+    "source_chunk": "24.md",
+    "answer": "When a particular PSTRB bit is asserted HIGH during a write transfer, it indicates that the corresponding byte lane of the write data bus contains valid information. Specifically, PSTRB[n] corresponds to the byte range PWDATA(8n + 7) : (8n), meaning the bit tells the receiver which 8-bit segments of the write data are valid and should be written."
+  },
+  {
+    "id": 15,
+    "type": "concept",
+    "question": "In an APB system where sparse writes are not supported, what constraint does this place on the validity of write data byte lanes when the PSTRB signal is not used?",
+    "source_chunk": "25.md",
+    "answer": "When sparse writes are not supported and the PSTRB signal is not used, all write data byte lanes must be valid for a write."
+  },
+  {
+    "id": 16,
+    "type": "concept",
+    "question": "In an APB read transfer with no wait states, what requirement is placed on when the Completer must provide valid read data relative to the end of the transfer?",
+    "source_chunk": "27.md",
+    "answer": "The Completer must provide the data before the end of the read transfer."
+  },
+  {
+    "id": 17,
+    "type": "concept",
+    "question": "During an APB read transfer that is being extended with wait states, which control and address signals must remain unchanged while the PREADY signal is LOW?",
+    "source_chunk": "28.md",
+    "answer": "Address signal, PADDR Direction signal, PWRITE Select signal, PSEL Enable signal, PENABLE Protection signal, PPROT User signal, PAUSER"
+  },
+  {
+    "id": 18,
+    "type": "concept",
+    "question": "Under what signal conditions is the PSLVERR signal considered valid during an APB transfer, and what is the recommended behavior of PSLVERR outside those conditions?",
+    "source_chunk": "29.md",
+    "answer": "PSLVERR is considered valid during the last cycle of an APB transfer, when PSEL, PENABLE, and PREADY are all HIGH. It is recommended, but not required, that PSLVERR is driven LOW when PSEL, PENABLE, or PREADY are LOW."
+  },
+  {
+    "id": 19,
+    "type": "concept",
+    "question": "How should a Requester and a Completer treat the PRDATA value when a read transaction on APB returns an error via PSLVERR?",
+    "source_chunk": "29.md",
+    "answer": "A Requester may still use the data returned on PRDATA even if PSLVERR is asserted, as there is no requirement for the peripheral to drive valid data on error. A Completer cannot rely on the error response to prevent reading the value on PRDATA."
+  },
+  {
+    "id": 20,
+    "type": "concept",
+    "question": "In a bus protocol that supports read transfers, what does an error response on a read transfer indicate about the availability of read data?",
+    "source_chunk": "31.md",
+    "answer": "an error response on a read transfer indicates that there is no valid read data available"
+  },
+  {
+    "id": 21,
+    "type": "concept",
+    "question": "In an AXI-to-APB bridge, how is an APB error signaled on PSLVERR mapped back to the AXI interface for read and write transactions?",
+    "source_chunk": "32.md",
+    "answer": "In an AXI-to-APB bridge, an APB error signaled on PSLVERR is mapped back to the AXI interface as follows:\n\nFor read transactions, the error is mapped to the RRESP signal.\n\nFor write transactions, the error is mapped to the BRESP signal.\n\nThis mapping ensures that error conditions on the APB side are communicated back to the AXI master through the appropriate response signals."
+  },
+  {
+    "id": 22,
+    "type": "concept",
+    "question": "In an AHB-to-APB bridge, which AHB signal is used to report an APB error indicated by PSLVERR for both read and write operations?",
+    "source_chunk": "32.md",
+    "answer": "HRESP"
+  },
+  {
+    "id": 23,
+    "type": "concept",
+    "question": "In an APB-based system, what is the purpose of the PPROT[2:0] protection signals?",
+    "source_chunk": "33.md",
+    "answer": "The PPROT[2:0] protection signals in an APB-based system are used to indicate the type of access and the processing mode for a transaction, enabling protection against illegal transactions. Specifically:\n\n- PPROT[0] indicates whether the access is from a normal or privileged processing mode.\n- PPROT[1] indicates whether the access is secure or non-secure.\n- PPROT[2] indicates whether the access is for data or instruction.\n\nThese signals help the interconnect and other system devices enforce access control based on the nature and context of the transaction."
+  },
+  {
+    "id": 24,
+    "type": "concept",
+    "question": "In an interface using the optional PPROT signal, what does it mean for PPROT to be described as an 'optional signal on Requester and Completer interfaces'?",
+    "source_chunk": "34.md",
+    "answer": "It means that the PPROT signal is not mandatory for all implementations; devices or interfaces may choose to include it or omit it. If a device does not include PPROT, it must still operate correctly in a compatible manner with other devices that may or may not have PPROT. The compatibility rules define how systems behave when connecting devices with differing PPROT presence, ensuring interoperability even when the signal is not present on one or both sides."
+  },
+  {
+    "id": 25,
+    "type": "concept",
+    "question": "In the context of an APB5 interface that supports the Realm Management Extension (RME), what is the purpose of the Root and Realm physical address spaces?",
+    "source_chunk": "36.md",
+    "answer": "The Root and Realm physical address spaces are added by the Realm Management Extension (RME) to the Arm architecture to enable finer-grained permission checks for APB transactions. These address spaces allow the system to distinguish between different types of memory or peripheral access based on security and realm context, beyond the traditional Secure and Non-secure spaces. This supports more flexible and secure memory management, particularly in systems with multiple realms or root-level access requirements. The selection of the appropriate address space is determined by the combination of the PNSE signal and the PPROT[1] bit, as defined in Table 3-5."
+  },
+  {
+    "id": 26,
+    "type": "concept",
+    "question": "In an APB interface, what does setting the RME_Support property to True or False indicate, and how does this affect the presence of the PNSE signal?",
+    "source_chunk": "37.md",
+    "answer": "Setting the RME_Support property to True indicates that the APB interface supports RME and the PNSE signal is present on the interface. This can only be used on an APB5 interface. Setting the RME_Support property to False indicates that the APB interface does not support RME and the PNSE signal is not present on the interface. If the RME_Support property is not declared, it is considered False."
+  },
+  {
+    "id": 27,
+    "type": "concept",
+    "question": "What is the purpose of the PWAKEUP signal in relation to APB interfaces?",
+    "source_chunk": "39.md",
+    "answer": "The PWAKEUP signal is used to indicate any activity associated with any APB interface. It provides a glitch-free signal that can be routed to a clock controller or similar component to enable power and clocks to connected components."
+  },
+  {
+    "id": 28,
+    "type": "concept",
+    "question": "How does the Wakeup_Signal property indicate whether a component supports wake-up signaling, and what is the default behavior if this property is not declared?",
+    "source_chunk": "39.md",
+    "answer": "The Wakeup_Signal property indicates whether a component supports wake-up signaling by being set to True if the wake-up signal is present, and False if it is not. If the Wakeup_Signal property is not declared, it is considered False by default."
+  },
+  {
+    "id": 29,
+    "type": "concept",
+    "question": "Why must the PWAKEUP signal be glitch-free, and what are two example implementation techniques that help ensure it is glitch-free?",
+    "source_chunk": "40.md",
+    "answer": "PWAKEUP must be glitch-free because it is synchronous to PCLK and must be suitable for sampling asynchronously in a different clock domain. Glitches can cause metastability or incorrect sampling in the asynchronous domain, leading to unreliable behavior or system errors.\n\nTwo example implementation techniques that help ensure PWAKEUP is glitch-free are:\n\n- Generating PWAKEUP directly from a register.\n- Using a glitch-free OR tree to combine signals that drive PWAKEUP."
+  },
+  {
+    "id": 30,
+    "type": "concept",
+    "question": "What is the purpose of user signaling in an APB protocol interface, and why is its usage generally discouraged?",
+    "source_chunk": "42.md",
+    "answer": "The purpose of user signaling in an APB protocol interface is to allow users to add custom signaling that is not defined in the standard APB protocol, enabling additional functionality without altering the core protocol. However, its usage is generally discouraged because the APB protocol does not define the function or meaning of these signals, which can lead to interoperability problems if different components interpret or use the same user signals in incompatible ways."
+  },
+  {
+    "id": 31,
+    "type": "concept",
+    "question": "On which version of the APB protocol interface is user signaling allowed to be added?",
+    "source_chunk": "42.md",
+    "answer": "APB5"
+  },
+  {
+    "id": 32,
+    "type": "concept",
+    "question": "In an AMBA-style bus interface that defines PAUSER, PWUSER, PRUSER, and PBUSER signals, what is the general purpose of these USER signals and how are their widths determined?",
+    "source_chunk": "43.md",
+    "answer": "The USER signals (PAUSER, PWUSER, PRUSER, PBUSER) are general-purpose user-defined signals used to carry additional metadata or attributes specific to the transaction, allowing for customization beyond the standard bus protocol. These signals are optional and only exist if their associated width property is non-zero.\n\nTheir widths are determined by the user-defined constants:\n- PAUSER width is USER_REQ_WIDTH, which defines the width of the request attribute.\n- PWUSER width is USER_DATA_WIDTH, which defines the width of the write data attribute.\n- PRUSER width is USER_DATA_WIDTH, which defines the width of the read data attribute.\n- PBUSER width is USER_RESP_WIDTH, which defines the width of the response attribute.\n\nThese widths are typically defined by the system designer to match the specific requirements of the application or protocol extension. For example, a user might use PAUSER to indicate a priority level, PWUSER to carry a transaction ID for write operations, PRUSER to carry a tag for read responses, and PBUSER to indicate a status code for responses. The signals must be valid under specific conditions related to the assertion of control signals (PSEL, PWRITE, PENABLE, PREADY) and must remain consistent during the relevant phases of the transaction."
+  },
+  {
+    "id": 33,
+    "type": "concept",
+    "question": "In the context of a bus or interconnect that supports user-defined signals, what does it mean for the width of these user-defined signals to be implementation defined?",
+    "source_chunk": "44.md",
+    "answer": "It means that the width of user-defined signals is not standardized or mandated by the specification; instead, each implementation may choose its own width for these signals, which can vary depending on the specific design, hardware, or use case. This flexibility allows designers to optimize for performance, area, or protocol requirements, but it also means that different implementations may not be interoperable unless explicitly designed to handle varying widths. The specification does not enforce uniformity in signal widths across request, data, or response paths, leaving that decision to the implementer."
+  },
+  {
+    "id": 34,
+    "type": "concept",
+    "question": "Why is it recommended that the USER_DATA_WIDTH be an integer multiple of the width of the data buses in bytes when designing an interface that supports user-defined signals?",
+    "source_chunk": "44.md",
+    "answer": "It is recommended that USER_DATA_WIDTH be an integer multiple of the width of the data buses in bytes to assist with data width and protocol conversion. This alignment simplifies the hardware design by ensuring that user-defined signals can be efficiently packed and unpacked across different bus widths without requiring complex bit manipulation or padding. It also facilitates smoother interoperability between components with different data bus widths, reducing the risk of misalignment or data corruption during transfers, especially when crossing domain boundaries or interfacing with protocol converters."
+  },
+  {
+    "id": 35,
+    "type": "concept",
+    "question": "In an APB interface, what is the purpose of the ACCESS state and which signal is asserted only in this state?",
+    "source_chunk": "45.md",
+    "answer": "The purpose of the ACCESS state is to allow the APB interface to perform the actual data transfer. The signal asserted only in this state is PENABLE."
+  },
+  {
+    "id": 36,
+    "type": "concept",
+    "question": "Why is end-to-end Error Detection and Correction (EDC) required for safety‑critical System‑on‑Chip (SoC) applications, and what is meant by covering all logic and wires from source to destination?",
+    "source_chunk": "46.md",
+    "answer": "End-to-end Error Detection and Correction (EDC) is required for safety-critical System-on-Chip (SoC) applications because errors in one system component can propagate and cause multiple errors across connected components. This propagation can lead to system failures or incorrect behavior, which is unacceptable in safety-critical environments. EDC ensures that errors are detected and corrected across the entire communication path, from the source to the destination, including all intermediate logic and wiring.\n\nCovering all logic and wires from source to destination means that the EDC mechanism is implemented throughout the entire data path, not just within individual components. This includes the interconnects, routing logic, and any other hardware or software elements involved in transmitting data from the source to the destination. The goal is to ensure that any single-bit or multi-bit errors that occur anywhere along this path are detected and, if possible, corrected before they affect the system's operation. This comprehensive protection is essential to maintain the reliability and integrity of the system in safety-critical applications."
+  },
+  {
+    "id": 37,
+    "type": "concept",
+    "question": "What does the Check_Type property value False indicate about the presence of checking signals on an interface?",
+    "source_chunk": "47.md",
+    "answer": "The Check_Type property value False indicates that there are no checking signals on the interface."
+  },
+  {
+    "id": 38,
+    "type": "concept",
+    "question": "When the Check_Type property is set to Odd_Parity_Byte_All, how is odd parity checking applied to the interface signals?",
+    "source_chunk": "47.md",
+    "answer": "When the Check_Type property is set to Odd_Parity_Byte_All, odd parity checking is applied to all signals on the interface. Each bit of the parity signal covers up to 8 bits, meaning that for every group of 8 data bits, an additional parity bit is generated or checked such that the total number of 1s (including the parity bit) is odd. This ensures error detection by verifying that the parity remains odd after transmission or reception."
+  },
+  {
+    "id": 39,
+    "type": "concept",
+    "question": "In an interface that uses odd parity for byte-level protection, how is the parity bit defined relative to the covered payload bits, and what condition must the combined set of payload and parity bits satisfy each cycle when parity checking is enabled?",
+    "source_chunk": "48.md",
+    "answer": "In an interface that uses odd parity for byte-level protection, the parity bit is defined such that it ensures the total number of asserted bits (1s) across the covered payload bits and the parity bit is always odd. This means the parity bit is chosen to make the sum of all bits in its group (payload bits plus parity bit) an odd number. For each group of up to 8 payload bits, the parity bit is calculated as the inversion of the parity of the 8 bits — if the number of 1s in the 8 bits is even, the parity bit is 1; if odd, the parity bit is 0. When parity checking is enabled, the combined set of payload and parity bits must always contain an odd number of asserted bits."
+  },
+  {
+    "id": 40,
+    "type": "concept",
+    "question": "In the context of parity error detection, what are some possible system-level effects that a single flipped bit can have?",
+    "source_chunk": "49.md",
+    "answer": "A single flipped bit can have a wide range of system-level effects, including but not limited to: harmless behavior, performance degradation, data corruption, security violations, or deadlock."
+  },
+  {
+    "id": 41,
+    "type": "concept",
+    "question": "When a parity error is detected, what are two different ways the Completer can handle the transfer itself?",
+    "source_chunk": "49.md",
+    "answer": "Terminate or propagate the transfer"
+  },
+  {
+    "id": 42,
+    "type": "concept",
+    "question": "When must the APB signals PRDATA, PSLVERR, PRUSER, and PBUSER be valid with respect to PSEL, PENABLE, and PREADY?",
+    "source_chunk": "50.md",
+    "answer": "The APB signals PRDATA, PSLVERR, PRUSER, and PBUSER must be valid when PSEL, PENABLE, and PREADY are asserted."
+  },
+  {
+    "id": 43,
+    "type": "material",
+    "question": "Based on the table, which issue first introduced version 2.0 of the AMBA APB protocol, and on what date was it released?",
+    "material": "1_1.txt",
+    "source_chunk": "1.md",
+    "answer": "Version 2.0 of the AMBA APB protocol was first introduced with Issue C, which was released on 13 April 2010."
+  },
+  {
+    "id": 44,
+    "type": "material",
+    "question": "According to the figure, how is a transition from a stable bus value to a high-impedance state visually distinguished from a generic bus value change in the timing diagram?",
+    "material": "11_2.jpg",
+    "source_chunk": "11.md",
+    "answer": "The transition from a stable bus value to a high-impedance state is visually distinguished by a bus change symbol that is shaped like a \"Z\" or a double-ended arrow, indicating a high-impedance state. In contrast, a generic bus value change is shown with a single-ended arrow or a simple transition symbol without the \"Z\" shape."
+  },
+  {
+    "id": 45,
+    "type": "material",
+    "question": "According to the table, what is the purpose of the PSTRB signal in an AMBA APB write transfer, and how is each PSTRB[n] bit related to the PWDATA bus?",
+    "material": "17_4.txt",
+    "source_chunk": "17.md",
+    "answer": "The PSTRB signal indicates which byte lanes to update during a write transfer. Each PSTRB[n] bit corresponds to a specific 8-bit segment of the PWDATA bus, where PSTRB[n] controls the byte lanes PWDATA[(8n + 7):(8n)]. This allows the write transaction to selectively update individual bytes within the data word. PSTRB must not be active during a read transfer."
+  },
+  {
+    "id": 46,
+    "type": "material",
+    "question": "According to the figure, how do the signals PSEL, PENABLE, and PREADY transition from T1 to T3 to complete a write transfer with no wait states, and at which clock edge is the write data accepted?",
+    "material": "22_5.jpg",
+    "source_chunk": "22.md",
+    "answer": "PSEL is asserted at T1 and remains asserted until T3. PENABLE is asserted at T2 and remains asserted until T3. PREADY is asserted by the Completer at the rising edge of PCLK at T3 to indicate that the write data will be accepted. The write data is accepted at the rising edge of PCLK at T3."
+  },
+  {
+    "id": 47,
+    "type": "material",
+    "question": "According to the figure, during a write transfer with wait states, what happens to the address (PADDR) and write data (PWDATA) signals while PREADY is held LOW?",
+    "material": "23_6.jpg",
+    "source_chunk": "23.md",
+    "answer": "The address (PADDR) and write data (PWDATA) signals remain unchanged while PREADY is held LOW."
+  },
+  {
+    "id": 48,
+    "type": "material",
+    "question": "Based on the table, how are the PSTRB[3:0] signals mapped to the byte lanes of a 32-bit write data bus, and which PSTRB bit corresponds to the most significant byte?",
+    "material": "24_8.txt",
+    "source_chunk": "24.md",
+    "answer": "PSTRB[3] corresponds to the most significant byte, which is bits 31:24 of the write data bus. PSTRB[2] corresponds to bits 23:16, PSTRB[1] to bits 15:8, and PSTRB[0] to bits 7:0. Each PSTRB[n] controls the validity of the byte lane defined by PWDATA(8n+7):(8n)."
+  },
+  {
+    "id": 49,
+    "type": "material",
+    "question": "According to the table, how should the PSTRB inputs of a Completer be connected when the Completer has the PSTRB signal present but the Requester does not, and what does this imply about the validity of the write data byte lanes?",
+    "material": "25_7.txt",
+    "source_chunk": "25.md",
+    "answer": "The PSTRB inputs of the Completer should be tied to the PWRITE output from the Requester. This implies that all write data byte lanes are valid for a write."
+  },
+  {
+    "id": 50,
+    "type": "material",
+    "question": "According to the figure, during an APB read transfer with no wait states, how are the PSEL and PENABLE signals timed relative to the address phase on PADDR and the appearance of valid data on PRDATA?",
+    "material": "27_10.jpg",
+    "source_chunk": "27.md",
+    "answer": "In an APB read transfer with no wait states, the PSEL signal goes high at the same time as the address phase on PADDR, and the PENABLE signal goes high one clock cycle after PSEL. The valid data on PRDATA appears after PENABLE goes high and remains valid until the next clock edge."
+  },
+  {
+    "id": 51,
+    "type": "material",
+    "question": "According to the figure, how does the PREADY signal modify the duration of the Access phase in the read transfer, and at which clock cycles does the transfer finally complete?",
+    "material": "28_9.jpg",
+    "source_chunk": "28.md",
+    "answer": "The PREADY signal modifies the duration of the Access phase by extending it when it is driven LOW. During this extension, the Access phase is prolonged to accommodate additional wait states. In the given figure, the PREADY signal goes LOW at T4 and remains LOW until T6. This indicates that two additional clock cycles (T4 and T5) are added to the Access phase. The transfer finally completes at T6, when PREADY goes HIGH again, signaling the end of the extended Access phase."
+  },
+  {
+    "id": 52,
+    "type": "material",
+    "question": "According to the figure, which signal indicates that the slave is responding with an error during the write transfer, and how is this error response temporally related to the assertion of the PREADY signal?",
+    "material": "30_11.jpg",
+    "source_chunk": "30.md",
+    "answer": "PSLVVERR indicates that the slave is responding with an error during the write transfer. PSLVVERR is asserted after PREADY is deasserted, indicating that the slave is not ready to respond or is responding with an error."
+  },
+  {
+    "id": 53,
+    "type": "material",
+    "question": "According to the figure, during a failing read transfer, how do the PREADY and PSLVERR signals behave in relation to each other when the slave indicates that no valid read data is available?",
+    "material": "31_12.jpg",
+    "source_chunk": "31.md",
+    "answer": "In a failing read transfer, the PREADY signal goes high to indicate that the slave is ready to respond, but the PSLVERR signal also goes high to indicate an error condition. This means that while the slave is ready, the data is not valid, and the error response is asserted. The PREADY signal remains high during the error condition, indicating readiness, while PSLVERR is asserted to signal the error. This combination allows the master to recognize that although the slave is ready, the read data is invalid or unavailable."
+  },
+  {
+    "id": 54,
+    "type": "material",
+    "question": "According to the table, how are the three PPROT bits (PPROT[0], PPROT[1], and PPROT[2]) individually interpreted in terms of access type, and what does a LOW versus HIGH value mean for each?",
+    "material": "33_14.txt",
+    "source_chunk": "33.md",
+    "answer": "PPROT[0] indicates processing mode: LOW means normal access, HIGH means privileged access.  \nPPROT[1] indicates security mode: LOW means secure access, HIGH means non-secure access.  \nPPROT[2] indicates transaction type: LOW means data access, HIGH means instruction access."
+  },
+  {
+    "id": 55,
+    "type": "material",
+    "question": "According to the table, under what combinations of PPROT presence on the Requester and Completer is the connection considered not compatible, and what condition can make it compatible in that case?",
+    "material": "34_13.txt",
+    "source_chunk": "34.md",
+    "answer": "The connection is considered not compatible when the Requester does not have the PPROT signal present and the Completer has the PPROT signal present. However, this can be made compatible if the fixed protection attributes are functionally correct."
+  },
+  {
+    "id": 56,
+    "type": "material",
+    "question": "According to the table, what is the function of the PNSE signal on an APB5 interface and when must it be valid during a transaction?",
+    "material": "36_17.txt",
+    "source_chunk": "36.md",
+    "answer": "The PNSE signal on an APB5 interface is an extension to the protection type. It must be valid when PSEL is asserted."
+  },
+  {
+    "id": 57,
+    "type": "material",
+    "question": "Based on the table, under which combination of RME_Support settings for the Requester and Completer interfaces is the system not compatible, and why is that combination problematic compared to the others?",
+    "material": "37_15.txt",
+    "source_chunk": "37.md",
+    "answer": "The system is not compatible when the Requester has RME_Support set to True and the Completer has RME_Support set to False. This combination is problematic because the Requester expects the interface to support RME (which requires the PNSE signal to be present), but the Completer does not support RME (meaning it does not provide the PNSE signal). Since RME requires both the Requester and Completer to be properly aligned in their RME_Support settings — specifically, the Completer must support RME when the Requester does — this mismatch prevents proper operation. The PNSE signal is essential for RME functionality, and its absence on the Completer when the Requester expects it leads to an incompatible configuration that cannot function correctly."
+  },
+  {
+    "id": 58,
+    "type": "material",
+    "question": "According to the table, what is the functional role of the PWAKEUP signal in relation to a Requester interface?",
+    "material": "40_18.txt",
+    "source_chunk": "40.md",
+    "answer": "PWAKEUP indicates any activity associated with a Requester interface."
+  },
+  {
+    "id": 59,
+    "type": "material",
+    "question": "According to the table, under what signal conditions must the PRUSER signal be valid during a read transfer, and which component is responsible for driving it?",
+    "material": "43_19.txt",
+    "source_chunk": "43.md",
+    "answer": "PRUSER must be valid when PSEL, PENABLE, and PREADY are asserted, and PWRITE is deasserted. The Completer is responsible for driving it."
+  },
+  {
+    "id": 60,
+    "type": "material",
+    "question": "According to the state diagram, how do the values of PSELx and PENABLE differ between the SETUP and ACCESS states of the APB interface, and what condition on PREADY causes the interface to remain in the ACCESS state?",
+    "material": "45_20.jpg",
+    "source_chunk": "45.md",
+    "answer": "In the SETUP state, PSELx is set to 1 and PENABLE is set to 0. In the ACCESS state, PSELx is set to 1 and PENABLE is set to 1. The interface remains in the ACCESS state if PREADY is held LOW by the Completer."
+  },
+  {
+    "id": 61,
+    "type": "material",
+    "question": "According to the figure, where in the data path between the source and destination are parity generation and parity checking operations performed, and how do these relate to the use of an EDC code in the interconnect?",
+    "material": "46_21.jpg",
+    "source_chunk": "46.md",
+    "answer": "Parity generation is performed at the source, and parity checking is performed at the destination. The EDC code is used within the interconnect to detect and correct errors that may have occurred during transmission over the long-distance wiring and routing logic. The EDC code is generated at the interconnect's input (after parity check and EDC generation) and checked at the interconnect's output (before parity check at the destination). This allows for end-to-end protection of the data path."
+  },
+  {
+    "id": 62,
+    "type": "material",
+    "question": "According to the table, under what condition is the PRDATACHK parity check signal enabled, and what is its width relative to DATA_WIDTH?",
+    "material": "50_22.txt",
+    "source_chunk": "50.md",
+    "answer": "The PRDATACHK parity check signal is enabled when PSEL, PENABLE, PREADY, and !PWRITE are all asserted. Its width is DATA_WIDTH/8."
+  },
+  {
+    "id": 63,
+    "type": "reasoning",
+    "question": "Under the AMBA Specification Licence, if a company designs an integrated circuit that includes a CPU which is substantially compliant with Arm instruction sets, what licensing condition must be satisfied for manufacturing that CPU, and why is this condition imposed?",
+    "source_chunk": "1.md",
+    "answer": "If a company designs an integrated circuit that includes a CPU which is substantially compliant with Arm instruction sets, the licensing condition that must be satisfied is that such CPU shall only be manufactured under licence from Arm. This condition is imposed to ensure that Arm retains control over the licensing and distribution of its instruction set architectures, protecting its intellectual property rights and maintaining the integrity of its licensing model. It prevents unauthorized or unlicensed use of Arm's instruction sets, which could otherwise lead to infringement of Arm’s patents and copyrights, and ensures that Arm receives appropriate compensation and maintains oversight over implementations that use its technology."
+  },
+  {
+    "id": 64,
+    "type": "reasoning",
+    "question": "Given that asserted signals are HIGH for active-HIGH signals and LOW for active-LOW signals, explain how using a lower-case 'n' in a signal name helps engineers correctly interpret timing diagrams and avoid misinterpreting when a signal is logically asserted or deasserted.",
+    "source_chunk": "11.md",
+    "answer": "Using a lower-case 'n' in a signal name indicates that the signal is active-LOW. This means the signal is logically asserted (i.e., active or meaningful) when it is LOW, and deasserted (i.e., inactive or not meaningful) when it is HIGH. This convention helps engineers correctly interpret timing diagrams because it provides immediate visual context for the signal's behavior. Without the 'n', engineers might assume the signal is active-HIGH, which could lead to misinterpretation of when the signal is asserted or deasserted, especially in timing diagrams where signal levels are shown as HIGH or LOW. The 'n' ensures that the signal's intended logic level is clear, reducing the risk of errors in design and analysis."
+  },
+  {
+    "id": 65,
+    "type": "reasoning",
+    "question": "Describe how the AMBA APB protocol evolved from APB3 through APB5 in terms of added functionality, and explain how each new set of interface features (such as error handling, protection, wakeup/user signaling, parity, and RME support) enhances the robustness or flexibility of APB-based systems.",
+    "source_chunk": "13.md",
+    "answer": "The AMBA APB protocol evolved from APB3 to APB5 by progressively adding functionality to enhance system robustness, flexibility, and support for modern design requirements. Each version introduced new interface signals and capabilities that addressed specific needs in embedded system design.\n\nAPB3 introduced wait states and error reporting. The PREADY signal allows the master to wait for the slave to become ready, accommodating slower peripherals or bus contention. The PSLVERR signal enables detection of transfer failures, allowing the master to handle errors gracefully, which improves system reliability and fault tolerance.\n\nAPB4 added transaction protection via the PPROT signal and sparse data transfer via PSTRB. PPROT supports both secure and non-secure transactions, enabling secure execution environments and isolation of privileged and user code. PSTRB allows writing only selected bytes in a transaction, reducing unnecessary bus traffic and enabling efficient memory updates, which enhances bandwidth utilization and reduces power consumption.\n\nAPB5 added wakeup signaling, user signaling, and parity protection. Wakeup signaling allows the system to wake up from low-power states based on APB activity, improving power efficiency. User signaling provides a mechanism for custom signaling between master and slave, useful for vendor-specific or application-specific protocols. Parity protection signals (not explicitly named in the text but implied by “parity protection and check signals”) add error detection at the interface level, increasing data integrity and reliability in noisy or high-reliability environments.\n\nAPB5 also introduced optional Realm Management Extension (RME) support in Issue E. RME enables fine-grained control over access permissions and security domains, allowing the system to manage multiple realms with different access policies, which is critical for secure and partitioned systems.\n\nTogether, these additions make APB more robust, flexible, and suitable for complex embedded systems. Error handling and parity improve reliability; transaction and write protection enhance security and efficiency; wakeup and user signaling support power management and custom functionality; and RME extends support for secure and multi-domain architectures. This evolution reflects the growing demands of modern SoCs for power efficiency, security, and performance."
+  },
+  {
+    "id": 66,
+    "type": "reasoning",
+    "question": "Explain why the APB protocol is considered suitable for accessing programmable control registers of peripheral devices, considering its timing characteristics, power consumption, and interface complexity.",
+    "source_chunk": "15.md",
+    "answer": "The APB protocol is considered suitable for accessing programmable control registers of peripheral devices because it is optimized for low cost, minimal power consumption, and reduced interface complexity. Its non-pipelined, synchronous nature ensures predictable timing, which is critical for control register accesses that typically require simple, reliable transactions rather than high-throughput data transfers. Since every APB transfer takes at least two cycles to complete, it avoids the overhead of complex pipelining, making it ideal for infrequent, low-bandwidth register reads and writes. This simplicity reduces the number of signals and logic required, lowering power consumption and silicon area — both crucial for peripheral devices that often operate in power-sensitive environments. The protocol’s design aligns well with the use case of programmable control registers, which prioritize reliability and ease of implementation over speed or bandwidth."
+  },
+  {
+    "id": 67,
+    "type": "reasoning",
+    "question": "An AMBA APB bridge is configured with DATA_WIDTH = 32 bits and implements both PSTRB and PSLVERR. Explain how PSTRB and PSLVERR would be used together during a write transfer where only selected bytes of the 32-bit word are to be updated and an error condition occurs in the Completer.",
+    "source_chunk": "17.md",
+    "answer": "During a write transfer where only selected bytes of the 32-bit word are to be updated and an error condition occurs in the Completer, the PSTRB and PSLVERR signals would be used as follows:\n\nThe Requester drives PSTRB to indicate which byte lanes are to be updated. Since PSTRB has a width of DATA_WIDTH/8 = 4 bits (for 32-bit DATA_WIDTH), each bit corresponds to one byte lane. For example, if only the least significant byte (bits 0–7) of the 32-bit word is to be updated, PSTRB[0] would be HIGH and the other bits LOW. PSTRB must not be asserted during read transfers, but it is valid and required during write transfers.\n\nThe Completer, upon detecting an error condition during the write transfer (e.g., due to an invalid address, bus conflict, or internal failure), asserts PSLVERR HIGH. This signal is optional but is used to indicate that the transfer failed. The Completer may assert PSLVERR in any cycle after PENABLE is asserted, typically during the same cycle or the next cycle, depending on implementation.\n\nThe Requester, upon seeing PSLVERR HIGH, will recognize that the write transfer has failed and may take appropriate action, such as retrying the transfer, signaling an error to the system, or aborting the transaction. The PSTRB signal still conveys which bytes were intended to be written, which may be useful for debugging or error handling. However, since PSLVERR is asserted, the actual write data specified by PWDATA and PSTRB will not be applied to the target memory or register.\n\nIn summary, PSTRB specifies which bytes are targeted for update, while PSLVERR indicates that the transfer failed, and both signals are active during the same write transfer cycle or subsequent cycles, depending on the Completer’s timing. The Requester uses PSTRB to understand the intent of the write and PSLVERR to detect and respond to the error."
+  },
+  {
+    "id": 68,
+    "type": "reasoning",
+    "question": "Why can using an address on PADDR that is not aligned to the data width lead to UNPREDICTABLE behavior, and what are some possible ways a Completer might respond to such an unaligned address?",
+    "source_chunk": "18.md",
+    "answer": "Using an unaligned address on PADDR can lead to unpredictable behavior because the APB protocol does not guarantee or enforce alignment of the address with the data width. The APB interface is designed to be simple and flexible, but this simplicity comes at the cost of undefined behavior for unaligned accesses. When a master issues a read or write request to an unaligned address, the hardware (Completer) may not know how to correctly interpret or handle the request, especially if the data crosses memory boundaries that are not naturally aligned to the data width.\n\nPossible ways a Completer might respond to an unaligned address include:\n\n1. Using the unaligned address as-is and performing the transfer, potentially accessing memory or registers in a way that is not aligned to the data width.\n2. Using an aligned address, possibly by adjusting the address to the nearest aligned boundary.\n3. Signaling an error response, such as returning an error status or invalid response to indicate that the transfer is not supported or should not proceed.\n\nThe exact behavior depends on the implementation of the Completer and the design of the system, which is why the specification warns that the result is UNPREDICTABLE. This unpredictability can lead to functional errors, timing issues, or even system crashes if the behavior is not handled correctly by the master or other components."
+  },
+  {
+    "id": 69,
+    "type": "reasoning",
+    "question": "An APB interface uses separate PRDATA and PWDATA buses but does not provide independent handshake signals for read and write transfers. Explain why this prevents concurrent read and write data transfers, and describe how the lack of separate handshakes leads to this limitation.",
+    "source_chunk": "19.md",
+    "answer": "The APB protocol uses separate PRDATA and PWDATA buses for read and write data, but lacks individual handshake signals for each. This means there is no way to independently signal when a read transfer is complete or when a write transfer is ready. Without separate handshakes, the master cannot know if the read data is valid or if the write data is being accepted at the same time. As a result, the system cannot arbitrate or coordinate concurrent read and write operations. The lack of separate handshakes forces the protocol to serialize data transfers — only one transfer (either read or write) can be active at any given time — because there is no mechanism to ensure both operations are properly synchronized or acknowledged simultaneously. This design simplifies the protocol but limits its throughput by preventing concurrent transactions."
+  },
+  {
+    "id": 70,
+    "type": "reasoning",
+    "question": "If all bus signals are sampled on the rising edge of a clock signal named PCLK, how would introducing wait states into a write transfer affect the number of PCLK cycles required to complete that transfer, and why?",
+    "source_chunk": "21.md",
+    "answer": "Introducing wait states into a write transfer increases the number of PCLK cycles required to complete that transfer. This is because each wait state corresponds to one additional PCLK cycle during which the bus signals are not valid or are held in a non-active state, typically to allow time for memory or peripheral devices to respond or become ready. Since all signals are sampled at the rising edge of PCLK, the system must wait for each wait state to complete before proceeding to the next phase of the transfer. Therefore, each wait state adds one full PCLK cycle to the total duration of the write transfer."
+  },
+  {
+    "id": 71,
+    "type": "reasoning",
+    "question": "Explain the sequence of events and signal transitions from the beginning of the Setup phase to the end of the Access phase in an APB write transfer with no wait states, and describe how these ensure that the address and data are correctly captured by the peripheral.",
+    "source_chunk": "22.md",
+    "answer": "The sequence of events in an APB write transfer with no wait states begins at the Setup phase and proceeds through the Access phase, ensuring that the peripheral correctly captures the address and data.\n\nAt T1, the Setup phase begins. The PSEL signal is asserted, indicating that a peripheral transaction is starting. This assertion requires that the PADDR (address), PWRITE (write enable), and PWDATA (write data) signals must be valid and stable. The PADDR signal carries the target peripheral address, PWRITE indicates that this is a write operation, and PWDATA carries the data to be written. These signals must remain stable during the Setup phase to ensure the peripheral can correctly identify the target address and the nature of the transaction.\n\nAt T2, the Access phase begins. The PENABLE signal is asserted, signaling that the peripheral should begin processing the transaction. The PREADY signal, which is asserted by the peripheral (Completer) at the rising edge of PCLK, indicates that the peripheral is ready to accept the write data. This assertion by the peripheral confirms that the data path is ready, and the write data will be accepted at T3. During the Access phase, PADDR and PWDATA must remain stable until the transfer completes. This stability ensures that the peripheral receives the correct address and data values without any change or corruption during the critical time window when the peripheral is processing the transaction.\n\nAt T3, the peripheral accepts the write data. The PREADY signal remains asserted, indicating that the peripheral is still ready to accept the data. The PENABLE signal remains asserted during this time to maintain the active state of the transaction. The peripheral processes the write data based on the address and data provided.\n\nAt the end of the Access phase, PENABLE is deasserted, signaling the completion of the transaction. PSEL is also deasserted, unless there is another transfer to the same peripheral. This deassertion releases the peripheral from the transaction and allows it to return to an idle state or prepare for the next transaction.\n\nThis sequence ensures that the address and data are correctly captured by the peripheral because:\n1. The Setup phase ensures that the peripheral knows the target address, the nature of the transaction (write), and the data to be written, with all signals stable and valid.\n2. The Access phase ensures that the peripheral is ready to accept the data, and the data remains stable until the transaction is complete.\n3. The deassertion of PENABLE and PSEL at the end of the transaction signals the completion of the transaction, allowing the peripheral to return to an idle state.\n\nBy following this sequence, the APB write transfer with no wait states guarantees that the peripheral correctly captures the address and data, ensuring reliable communication between the master and the peripheral."
+  },
+  {
+    "id": 72,
+    "type": "reasoning",
+    "question": "In an APB system, explain why peripherals that always require exactly two clock cycles for an access can safely tie PREADY HIGH, considering the behavior of PREADY when PENABLE is LOW.",
+    "source_chunk": "23.md",
+    "answer": "In an APB system, when PENABLE is LOW, the PREADY signal is not constrained by the protocol and can be driven to any value — including HIGH — by the peripheral. This is because the protocol only requires PREADY to be driven LOW (to extend the transfer) when PENABLE is HIGH. When PENABLE is LOW, the master is not actively enabling the transfer, so the peripheral is free to set PREADY as needed.\n\nFor peripherals that always require exactly two clock cycles for an access, tying PREADY HIGH ensures that the master does not wait for any additional cycles beyond the two required. The master will see PREADY as HIGH during the first clock cycle (when PENABLE is LOW), and then PENABLE will go HIGH in the second cycle, initiating the transfer. Since the peripheral is ready to respond immediately, PREADY remains HIGH, signaling to the master that the transfer can proceed without any wait states. This guarantees that the peripheral's access time is not extended beyond its fixed two-cycle requirement, making the system operate efficiently without unnecessary delays.\n\nTherefore, peripherals with fixed two-cycle access can safely tie PREADY HIGH because the protocol allows PREADY to be HIGH when PENABLE is LOW, and the master will not interpret this as a request for a wait state. The master will proceed with the transfer as soon as PENABLE goes HIGH, ensuring the access completes in exactly two cycles."
+  },
+  {
+    "id": 73,
+    "type": "reasoning",
+    "question": "In a system with a 32-bit write data bus and PSTRB[3:0] write strobes, how would the PSTRB signals be driven to update only the second-least-significant byte of a word during a write transfer, and how must PSTRB be driven during a read transfer?",
+    "source_chunk": "24.md",
+    "answer": "To update only the second-least-significant byte of a 32-bit word, the write strobe corresponding to that byte must be asserted HIGH while all others are LOW. The second-least-significant byte is the byte at bit positions 15:8 (i.e., the byte immediately following the least-significant byte, which is bits 7:0).\n\nAccording to the specification, PSTRB[n] corresponds to PWDATA(8n + 7):(8n). So:\n\n- PSTRB[0] → bits 7:0 (least-significant byte)\n- PSTRB[1] → bits 15:8 (second-least-significant byte)\n- PSTRB[2] → bits 23:16\n- PSTRB[3] → bits 31:24\n\nTherefore, to update only the second-least-significant byte, set **PSTRB[1] = HIGH** and **PSTRB[0], PSTRB[2], PSTRB[3] = LOW**.\n\nDuring a read transfer, the Requester must drive **all bits of PSTRB LOW**, regardless of the data bus width or byte selection. So for a 32-bit bus, **PSTRB[3:0] = 0000**."
+  },
+  {
+    "id": 74,
+    "type": "reasoning",
+    "question": "In an APB system that does not support sparse writes, explain why all four combinations of PSTRB presence or absence between a Requester and a Completer can still be considered compatible, and describe the implications for how write data is interpreted.",
+    "source_chunk": "25.md",
+    "answer": "In an APB system that does not support sparse writes, all four combinations of PSTRB presence or absence between a Requester and a Completer are compatible because the system inherently treats all write data byte lanes as valid during any write transaction. Without sparse writes, there is no need to selectively enable or disable individual byte lanes — the entire write data word is always written, regardless of the PSTRB signal state. \n\nWhen PSTRB is not present on either side, the system simply ignores the PSTRB signal and assumes all bytes are valid, which is consistent with the non-sparse-write model. When PSTRB is present on one or both sides, the system can still operate correctly as long as the Requester does not attempt to use sparse writes. In cases where PSTRB is present on the Requester and absent on the Completer, the Completer ignores PSTRB since it is not connected, and the Requester must ensure its PSTRB is tied to PWRITE (as per the specification) to guarantee all byte lanes are valid. When PSTRB is present on both sides, the Completer can use the signal, but since sparse writes are not supported, it will treat all byte lanes as valid regardless of the PSTRB value — effectively ignoring it or using it only to confirm that all bytes are intended to be written.\n\nThe implication for how write data is interpreted is that in all cases, the Completer assumes the entire write data word is valid and must be written to the target address. The PSTRB signal, if present, is either ignored (if sparse writes are not supported) or used only to ensure that all byte lanes are written (by tying it to PWRITE). This ensures compatibility across all combinations while maintaining the constraint that sparse writes are not supported."
+  },
+  {
+    "id": 75,
+    "type": "reasoning",
+    "question": "Explain how the absence of wait states in an APB read transfer constrains the timing relationship between PADDR, PSEL, PENABLE, and PRDATA, and why this requires the Completer to have the read data ready within a single enable phase.",
+    "source_chunk": "27.md",
+    "answer": "The absence of wait states in an APB read transfer means that the data must be available immediately after the address and control signals are asserted, without any additional clock cycles to wait for the slave to prepare the data. This imposes a strict timing constraint: the slave (Completer) must have the data ready to be output on PRDATA within the same PENABLE phase that is used to assert the read request.\n\nIn the timing diagram, PADDR is asserted at T1 to specify the address, and PSEL and PENABLE are asserted at T2 to indicate that a transaction is being initiated. The read data must be valid on PRDATA before the end of the PENABLE pulse, which in this case is at T3. Since there are no wait states, the data cannot be delayed to a later clock cycle. The Completer must therefore be ready to drive the data onto PRDATA as soon as PENABLE goes high and must maintain it valid until PENABLE goes low, ensuring that the data is available for the master to read during the same enable phase. This eliminates any possibility of the master having to wait for additional cycles to receive the data, enforcing a synchronous and tightly coupled timing relationship between the address phase and the data phase."
+  },
+  {
+    "id": 76,
+    "type": "reasoning",
+    "question": "An APB slave sometimes requires three extra clock cycles to return read data. Explain how the slave can use the PREADY signal to insert these wait states without violating bus protocol, and describe what must happen to PADDR, PWRITE, PSEL, PENABLE, PPROT, and PAUSER during the extended period.",
+    "source_chunk": "28.md",
+    "answer": "The APB slave can insert three extra clock cycles by driving PREADY low during the Access phase of the read transfer. This causes the master to wait until PREADY goes high again before proceeding. The slave must maintain the same values for PADDR, PWRITE, PSEL, PENABLE, PPROT, and PAUSER during the extended period, as specified in the protocol. These signals remain unchanged while PREADY is low, ensuring the bus protocol is not violated. Once the slave has prepared the data, it drives PREADY high, allowing the master to continue the transaction."
+  },
+  {
+    "id": 77,
+    "type": "reasoning",
+    "question": "An APB write transfer completes with PSLVERR asserted during the final cycle when PSEL, PENABLE, and PREADY are HIGH. Explain why the Requester cannot assume that the peripheral register was left unchanged, and discuss the implications this has for error recovery or retry mechanisms.",
+    "source_chunk": "29.md",
+    "answer": "When a write transaction receives an error (PSLVERR asserted during the final cycle with PSEL, PENABLE, and PREADY all HIGH), the specification explicitly states that “this does not mean that the register within the peripheral has not been updated.” This means the peripheral may have already written the data to its internal register before the error was detected — or even during the same cycle — and the error is reported only after the transfer has completed.\n\nThe reason the Requester cannot assume the register was left unchanged is because the APB protocol does not guarantee atomicity or rollback of write operations in the presence of errors. The peripheral may have committed the write before the error was detected, and the error response is merely an indication that the transaction failed for some reason (e.g., bus conflict, invalid address, or peripheral fault), not that the write was undone.\n\nThis has significant implications for error recovery or retry mechanisms:\n\n1. **No rollback guarantee**: The Requester cannot assume that a failed write can be reversed or that the peripheral will revert to a prior state. This means retrying the same write transaction may result in the same error or even cause unintended side effects if the peripheral’s state has already changed.\n\n2. **State unpredictability**: Since the peripheral’s internal state may have been modified, retrying the same transaction may not yield the same result — the peripheral may be in an inconsistent or undefined state.\n\n3. **No guaranteed idempotency**: The write operation may not be idempotent — performing it again may have different effects than the first time, depending on the peripheral’s internal logic and state.\n\n4. **Need for application-level recovery**: The Requester must implement application-level logic to handle such errors — for example, by tracking expected register values, using checksums or transaction IDs, or maintaining state outside the peripheral to detect and recover from inconsistencies.\n\n5. **No automatic recovery**: The APB protocol does not provide any mechanism to automatically recover from write errors. The Requester must implement its own retry or error handling strategy, which may involve logging, retrying with different parameters, or initiating a reset or recovery sequence.\n\nIn summary, the Requester must treat write errors as potentially having altered the peripheral’s state and must design error recovery mechanisms accordingly — without relying on the peripheral to undo or rollback the write. This increases complexity but ensures robustness in systems where reliability is critical."
+  },
+  {
+    "id": 78,
+    "type": "reasoning",
+    "question": "In a system where a read transfer can complete with either valid data or an error response, how should a bus master distinguish between these two outcomes using control and status signals, and what sequence of actions should it take after detecting that no valid read data is available?",
+    "source_chunk": "31.md",
+    "answer": "A bus master should distinguish between a successful read transfer with valid data and a read transfer that completes with an error response by monitoring the PREADY and PSLVERR signals together.\n\nIn a read transfer, PREADY goes high to indicate that the slave has completed the read operation and is ready to provide data. If PSLVERR is also high when PREADY goes high, it indicates that the read operation completed with an error — meaning no valid read data is available.\n\nThe sequence of actions the bus master should take after detecting that no valid read data is available (i.e., after observing PREADY high and PSLVERR high) is:\n\n1. The bus master should stop driving the PADDR and PRDATA signals, as the read operation has completed and no further data is expected.\n2. The bus master should assert the PENABLE signal to indicate the end of the transaction.\n3. The bus master should deassert the PSEL signal to release the bus.\n4. The bus master should handle the error condition internally — for example, by logging the error, retrying the read operation, or taking appropriate corrective action based on the system design.\n\nThis sequence ensures that the bus master correctly acknowledges the error response and releases the bus, allowing other masters to use it."
+  },
+  {
+    "id": 79,
+    "type": "reasoning",
+    "question": "Explain how error propagation differs between AXI-to-APB and AHB-to-APB bridges when an APB peripheral asserts PSLVERR, including which response signals are used on each master bus for read and write transfers.",
+    "source_chunk": "32.md",
+    "answer": "When an APB peripheral asserts PSLVERR, the error is propagated back to the master bus using different response signals depending on the bridge type.\n\nIn an AXI-to-APB bridge, the PSLVERR error is mapped to the RRESP signal for read transactions and to the BRESP signal for write transactions. This means that for read operations, the error is communicated via RRESP, and for write operations, it is communicated via BRESP.\n\nIn an AHB-to-APB bridge, the PSLVERR error is mapped to the HRESP signal for both read and write transactions. This means that regardless of whether the transaction is a read or a write, the error is communicated via HRESP.\n\nThus, the key difference is that AXI-to-APB uses separate response signals (RRESP for reads, BRESP for writes) to report errors, while AHB-to-APB uses a single response signal (HRESP) for both read and write errors."
+  },
+  {
+    "id": 80,
+    "type": "reasoning",
+    "question": "A transaction on an APB interface has PPROT[2:0] = 3'b110. Explain what this combination indicates about the processing mode (normal or privileged), security level (secure or non-secure), and whether the access is data or instruction, and discuss how this information could be used by a protection unit to permit or block the transaction.",
+    "source_chunk": "33.md",
+    "answer": "PPROT[2:0] = 3'b110 indicates:\n\n- PPROT[0] = 0 (LOW) → normal processing mode (not privileged)\n- PPROT[1] = 1 (HIGH) → non-secure access\n- PPROT[2] = 1 (HIGH) → instruction access\n\nThis means the transaction is an instruction access from a non-secure, normal processing mode.\n\nA protection unit could use this information to permit or block the transaction based on system security policies. For example:\n\n- If the system requires that only privileged code can execute instructions, the unit would block this transaction because it is marked as normal mode.\n- If the system enforces secure-only execution for instruction fetches, the unit would block this transaction because it is marked as non-secure.\n- If the system allows instruction fetches from non-secure, normal mode (e.g., in a minimal privilege setup), the unit would permit the transaction.\n\nThe protection unit may also use this to log or monitor access patterns, enforce memory mapping rules, or trigger exceptions if the access violates privilege or security constraints. Since PPROT is a hint, the protection unit might still validate the actual access permissions using other mechanisms (e.g., memory protection units or access control registers), but PPROT provides a coarse-grained indication to guide that validation."
+  },
+  {
+    "id": 81,
+    "type": "reasoning",
+    "question": "A system designer wants to connect a Requester that does not implement the PPROT signal to a Completer that does implement PPROT. Explain why this configuration is generally not compatible and describe how fixed protection attributes could make this connection functionally acceptable.",
+    "source_chunk": "34.md",
+    "answer": "This configuration is generally not compatible because the Requester does not provide any protection attributes, while the Completer expects to receive protection attributes via the PPROT signal. Without PPROT from the Requester, the Completer cannot determine the access permissions or protection attributes for the transaction, which may lead to incorrect or unsafe memory accesses.\n\nHowever, if the Completer uses fixed protection attributes — meaning it has predefined, unchanging protection attributes that are functionally correct for all transactions — then the Completer can operate without needing dynamic PPROT information from the Requester. In this case, the Completer can assume a default or fixed set of permissions that are safe and appropriate for the system, making the connection functionally acceptable even though the PPROT signal is not present on the Requester side. This is explicitly allowed by the specification under the condition that fixed protection attributes are functionally correct."
+  },
+  {
+    "id": 82,
+    "type": "reasoning",
+    "question": "Given a system that supports Secure, Non-secure, Root, and Realm physical address spaces, explain how the combination of PNSE and PPROT[1] bits can be used by hardware to route APB transactions to the correct physical address space.",
+    "source_chunk": "36.md",
+    "answer": "The combination of PNSE and PPROT[1] bits determines which physical address space the APB transaction should be routed to, based on the table provided. The hardware uses these two signals to select one of the four address spaces: Secure, Non-secure, Root, or Realm.\n\nWhen an APB transaction is initiated, the requester asserts the PNSE signal (which indicates whether the transaction is targeting the Root or Realm space) and the PPROT[1] signal (which indicates whether the transaction is Secure or Non-secure). The hardware decodes this combination as follows:\n\n- If PNSE = 0 and PPROT[1] = 0 → the transaction is routed to the Secure physical address space.\n- If PNSE = 0 and PPROT[1] = 1 → the transaction is routed to the Non-secure physical address space.\n- If PNSE = 1 and PPROT[1] = 0 → the transaction is routed to the Root physical address space.\n- If PNSE = 1 and PPROT[1] = 1 → the transaction is routed to the Realm physical address space.\n\nThe hardware uses this decoded value to select the appropriate memory or peripheral mapping within the corresponding physical address space. This allows the system to enforce access permissions based on the address space, ensuring that transactions targeting Root or Realm spaces are handled appropriately, and that Secure and Non-secure transactions are isolated as required by the architecture. The PNSE signal must be asserted (i.e., valid) only when PSEL is asserted, ensuring that the address space selection is only applied when a transaction is actually being issued."
+  },
+  {
+    "id": 83,
+    "type": "reasoning",
+    "question": "If an APB interface has the PNSE signal present but the RME_Support property is not explicitly declared, explain the implied value of RME_Support and describe the resulting requirements for other signals on the interface.",
+    "source_chunk": "37.md",
+    "answer": "If an APB interface has the PNSE signal present but the RME_Support property is not explicitly declared, the implied value of RME_Support is True. This is because the specification states that if RME_Support is not declared, it is considered False — but this contradicts the presence of PNSE, which can only be present if RME is supported. Therefore, the presence of PNSE implies RME_Support must be True.\n\nAs a result, the following requirements apply to other signals on the interface:\n\n- The PPROT signal must also be present, since PNSE requires PPROT to be present.\n- The PCTRLCHK signal must be present to parity protect the PNSE signal.\n\nIn summary, the presence of PNSE implies RME_Support is True, and this necessitates the presence of both PPROT and PCTRLCHK signals."
+  },
+  {
+    "id": 84,
+    "type": "reasoning",
+    "question": "A system designer wants to use a wake-up signal to enable clocks for components connected via an APB3 interface. Based on the rules for wake-up signaling, explain whether this is allowed and what protocol requirement must be met to support wake-up signaling.",
+    "source_chunk": "39.md",
+    "answer": "This is not allowed. Wake-up signaling can only be added to APB5 protocol interfaces, as specified. Since the system designer is using an APB3 interface, it does not meet the protocol requirement for supporting wake-up signaling. Therefore, the wake-up signal cannot be used to enable clocks for components connected via APB3."
+  },
+  {
+    "id": 85,
+    "type": "reasoning",
+    "question": "Explain how independently clock-gating the Completer interface from the Requester interface, while using PWAKEUP to enable the Completer clock, can lead to a missed Setup phase of a transfer and potentially cause interface deadlock.",
+    "source_chunk": "40.md",
+    "answer": "If the Completer interface is independently clock-gated from the Requester interface, and PWAKEUP is used to enable the Completer clock, there is a risk that the Completer’s clock may not be active at the exact time needed to sample the Setup phase of a transfer. The Setup phase requires the Completer to observe and respond to signals such as PSELx and PREADY in a timely manner. If the Completer clock is gated off or delayed relative to the Requester clock, and PWAKEUP is asserted just before or during the Setup phase, the Completer may miss the valid window to sample those signals. This can result in the Completer not recognizing the transaction, failing to assert PREADY, and potentially causing a deadlock — especially if the Requester waits for PREADY and the Completer remains unresponsive due to clocking issues. This situation violates the requirement that PWAKEUP must be glitch-free and synchronous, and that the Completer must respond appropriately to ensure transaction completion."
+  },
+  {
+    "id": 86,
+    "type": "reasoning",
+    "question": "Explain how the lack of a defined function for user signals in the APB protocol can lead to interoperability problems between components from different vendors.",
+    "source_chunk": "42.md",
+    "answer": "The lack of a defined function for user signals in the APB protocol means that each vendor can interpret and implement these signals in their own way. If two components from different vendors use the same user signal but assign different meanings or behaviors to it, the components may not function correctly when connected together. For example, one vendor might use a user signal to indicate a reset request, while another might use it to signal a data ready condition. When these components interact, the receiving component may misinterpret the signal, leading to incorrect behavior, system crashes, or data corruption. This lack of standardization prevents predictable and reliable communication between components, undermining interoperability across different vendor implementations."
+  },
+  {
+    "id": 87,
+    "type": "reasoning",
+    "question": "A designer wants to include user-defined attributes for requests, write data, and responses, but not for read data. How should the widths of PAUSER, PWUSER, PRUSER, and PBUSER be configured, and which of these signals will be absent from the interface?",
+    "source_chunk": "43.md",
+    "answer": "PAUSER width should be set to USER_REQ_WIDTH, PWUSER width should be set to USER_DATA_WIDTH, PRUSER width should be set to 0 (since read data attributes are not needed), and PBUSER width should be set to USER_RESP_WIDTH. The PRUSER signal will be absent from the interface because its width is zero."
+  },
+  {
+    "id": 88,
+    "type": "reasoning",
+    "question": "A system designer is implementing a domain-crossing bridge and several Completers on an interconnect that supports user-defined signals. Explain why it is recommended to provide support for all user signals on the domain-crossing bridge or interconnect, but not necessarily on the Completers, and discuss how this choice can affect data width and protocol conversion.",
+    "source_chunk": "44.md",
+    "answer": "It is recommended to provide support for all user signals on the domain-crossing bridge or interconnect because these components act as intermediaries between different domains or subsystems, often handling protocol translation, data width conversion, or signal routing. User signals may carry metadata, control information, or context that is essential for correct operation across domain boundaries. If the bridge or interconnect does not support all user signals, the information may be lost or misinterpreted, leading to functional errors or protocol violations.\n\nCompleters, on the other hand, are typically endpoint devices that respond to requests and do not need to handle signals from other domains. Since they operate within their own domain and do not mediate between different bus protocols or widths, they do not need to support user signals unless explicitly required by the system design. This reduces complexity and hardware overhead on Completers, which may be simpler or more constrained devices.\n\nThe choice to support user signals only on the bridge or interconnect affects data width and protocol conversion because the bridge must correctly handle user signals during translation between different bus widths or protocols. For example, if USER_DATA_WIDTH is not an integer multiple of the data bus width in bytes, it can complicate alignment and conversion logic. By ensuring that USER_DATA_WIDTH is a multiple of the data bus width, the bridge can more easily manage data packing, unpacking, and alignment during protocol conversion, reducing the risk of data corruption or misalignment.\n\nIn summary, supporting user signals on the bridge or interconnect ensures correct cross-domain communication and protocol handling, while omitting them on Completers simplifies their design and reduces unnecessary overhead. The alignment requirement for USER_DATA_WIDTH further ensures smooth data width conversion and protocol translation across domains."
+  },
+  {
+    "id": 89,
+    "type": "reasoning",
+    "question": "Describe the full sequence of state transitions and signal behavior for an APB write transfer that requires wait states because the Completer holds PREADY LOW for several cycles, and then immediately starts another transfer once PREADY is finally driven HIGH.",
+    "source_chunk": "45.md",
+    "answer": "The APB interface begins in the IDLE state, where PSELx is 0 and PENABLE is 0. When a write transfer is initiated, the interface transitions to the SETUP state on the next clock edge, asserting PSELx to 1 and keeping PENABLE at 0. From SETUP, the interface moves to the ACCESS state on the next clock edge, asserting PENABLE to 1 while keeping PSELx at 1. In the ACCESS state, the Completer holds PREADY LOW for several cycles, causing the interface to remain in the ACCESS state during those cycles. Once the Completer drives PREADY HIGH, the interface exits the ACCESS state. Since another transfer is required, the interface transitions directly back to the SETUP state without returning to IDLE, asserting PSELx to 1 and keeping PENABLE at 0. On the next clock edge, the interface moves to the ACCESS state again, asserting PENABLE to 1 while keeping PSELx at 1. The transfer completes, and the interface returns to the IDLE state after the transfer is finished."
+  },
+  {
+    "id": 90,
+    "type": "reasoning",
+    "question": "Explain why a simple parity scheme is sufficient for detecting single‑bit errors on the interface between components when there is no logic between them, and how organizing signals into multiple parity groups enables detection of some multi‑bit errors.",
+    "source_chunk": "46.md",
+    "answer": "A simple parity scheme is sufficient for detecting single-bit errors on the interface between components because, in the absence of logic between them, a single-bit error cannot be transformed into a multi-bit error. The parity bit is calculated based on the data bits, and any single-bit error will flip the parity, making it mismatched with the expected parity at the receiver. Since there is no combinational logic to alter the bit pattern, the error remains a single-bit flip, which can be detected by comparing the received parity with the calculated parity.\n\nOrganizing signals into multiple parity groups enables detection of some multi-bit errors because if multiple bits are corrupted within the same parity group, the parity for that group will still be incorrect, indicating an error. However, if errors occur in different parity groups, each group's parity will be incorrect, allowing the system to detect that multiple bits are corrupted. While a simple parity scheme cannot correct these errors, it can detect them, which is often sufficient for safety-critical applications where detection is the primary goal."
+  },
+  {
+    "id": 91,
+    "type": "reasoning",
+    "question": "If an APB5 interface does not explicitly declare a Check_Type property, what kind of error detection and correction behavior should be assumed, and why?",
+    "source_chunk": "47.md",
+    "answer": "If an APB5 interface does not explicitly declare a Check_Type property, it should be assumed to have no error detection or correction behavior, because the specification states that if Check_Type is not declared, it is considered to be False. This means there are no checking signals on the interface."
+  },
+  {
+    "id": 92,
+    "type": "reasoning",
+    "question": "An interface uses odd parity with one parity bit per byte of payload. For a 20-bit payload protected by a multi-bit check signal, describe how the payload bits are grouped and mapped to individual parity bits, and explain what happens for the most significant parity bit when the payload width is not an integer multiple of 8 bits.",
+    "source_chunk": "48.md",
+    "answer": "For a 20-bit payload protected by a multi-bit check signal using odd parity, the payload bits are grouped into bytes of 8 bits each, starting from the least significant bit (LSB). The first 16 bits (bits [15:0]) are grouped into two 8-bit bytes: byte 0 covers bits [7:0], byte 1 covers bits [15:8]. The remaining 4 bits (bits [19:16]) form the third byte, but since it is only 4 bits, it is treated as a partial byte.\n\nThe check signal is multi-bit, with each parity bit corresponding to a byte group. According to the specification, check bit [n] corresponds to payload bits [(8n + 7):8n]. So:\n\n- Check bit [0] covers bits [7:0] (first byte)\n- Check bit [1] covers bits [15:8] (second byte)\n- Check bit [2] covers bits [23:16] — but since the payload is only 20 bits, this would go beyond the payload.\n\nActually, since the payload is 20 bits, the third byte would be bits [19:16], which is only 4 bits, not 8. The specification says: “If the payload is not an integer number of bytes, the most significant bit of the check signal covers fewer than 8 bits in the most significant portion of the payload.”\n\nSo, the third byte (which would normally be bits [23:16]) is not present. Instead, the most significant partial byte is bits [19:16], which is 4 bits. The check bit for this partial byte (check bit [2]) should still be generated, but it only covers the 4 bits [19:16], not 8. The parity for this partial byte is computed over those 4 bits, and the check bit is driven accordingly, even though it is not a full byte.\n\nIn summary:\n\n- Check bit [0] covers bits [7:0]\n- Check bit [1] covers bits [15:8]\n- Check bit [2] covers bits [19:16] (only 4 bits, since payload is 20 bits, not 24)\n\nEach check bit is computed using odd parity on its respective group of bits. For the partial byte, only the 4 bits are used in the parity calculation, and the check bit is driven appropriately. The check signal is still multi-bit, but the most significant check bit (check bit [2]) covers fewer than 8 bits, as specified."
+  },
+  {
+    "id": 93,
+    "type": "reasoning",
+    "question": "A system detects a parity error on a memory write operation. Describe at least two different response strategies the Completer might take, and explain how each strategy could impact data integrity and overall system behavior.",
+    "source_chunk": "49.md",
+    "answer": "One response strategy is to terminate the transfer and return an error response, such as an abort or retry request. This ensures that the erroneous write is not committed to memory, preserving data integrity by preventing corrupted data from being stored. However, this may impact system behavior by causing the initiating device to retry the operation, potentially leading to performance degradation or increased latency, especially if retries are frequent or if the error is persistent.\n\nAnother strategy is to correct the parity check signal and propagate the error without terminating the transfer. This involves silently correcting the flipped bit using the parity information and continuing the operation. While this preserves data integrity by fixing the error on the fly, it may mask the presence of an error, leading to undetected hardware faults or latent bugs. If the correction is incorrect or the error is not truly correctable, it could introduce new corruption or security vulnerabilities, and the system might continue operating with faulty data without awareness."
+  },
+  {
+    "id": 94,
+    "type": "reasoning",
+    "question": "For an APB5 interface that implements the Check_Type, USER_DATA_WIDTH, and USER_RESP_WIDTH properties, which user-related parity check signals must or may be present, and how do the associated interface properties in the signal list constrain their widths?",
+    "source_chunk": "50.md",
+    "answer": "For an APB5 interface that implements the Check_Type, USER_DATA_WIDTH, and USER_RESP_WIDTH properties, the user-related parity check signals that must or may be present are:\n\n- PAUSERCHK — must be present if USER_REQ_WIDTH is present (conditional on USER_REQ_WIDTH being defined and non-zero, but since USER_REQ_WIDTH is not required to be implemented in APB5 unless specified, it is optional conditional).\n- PWUSERCHK — may be present if USER_DATA_WIDTH is present (optional conditional, present only if USER_DATA_WIDTH is defined).\n- PRUSERCHK — may be present if USER_DATA_WIDTH is present (optional conditional, present only if USER_DATA_WIDTH is defined).\n- PBUSERCHK — may be present if USER_RESP_WIDTH is present (optional conditional, present only if USER_RESP_WIDTH is defined).\n\nThe associated interface properties in the signal list constrain their widths as follows:\n\n- PAUSERCHK width is ceil(USER_REQ_WIDTH/8). Since USER_REQ_WIDTH is a property that must be declared if PAUSERCHK is to be present, and since APB5 supports USER_REQ_WIDTH, the width of PAUSERCHK is determined by the declared USER_REQ_WIDTH.\n- PWUSERCHK width is ceil(USER_DATA_WIDTH/8). Since USER_DATA_WIDTH is a property that must be declared if PWUSERCHK is to be present, and since APB5 supports USER_DATA_WIDTH, the width of PWUSERCHK is determined by the declared USER_DATA_WIDTH.\n- PRUSERCHK width is ceil(USER_DATA_WIDTH/8). Since USER_DATA_WIDTH is a property that must be declared if PRUSERCHK is to be present, and since APB5 supports USER_DATA_WIDTH, the width of PRUSERCHK is determined by the declared USER_DATA_WIDTH.\n- PBUSERCHK width is ceil(USER_RESP_WIDTH/8). Since USER_RESP_WIDTH is a property that must be declared if PBUSERCHK is to be present, and since APB5 supports USER_RESP_WIDTH, the width of PBUSERCHK is determined by the declared USER_RESP_WIDTH.\n\nIn summary, for an APB5 interface implementing Check_Type, USER_DATA_WIDTH, and USER_RESP_WIDTH, the user-related parity check signals that may be present are PAUSERCHK, PWUSERCHK, PRUSERCHK, and PBUSERCHK, with their widths constrained by the declared USER_REQ_WIDTH, USER_DATA_WIDTH, and USER_RESP_WIDTH, respectively. PAUSERCHK is conditional on USER_REQ_WIDTH, while PWUSERCHK, PRUSERCHK, and PBUSERCHK are conditional on USER_DATA_WIDTH and USER_RESP_WIDTH, respectively."
+  }
+]

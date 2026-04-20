@@ -12,6 +12,29 @@ logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """You generate questions from a text chunk in three categories:
 - concept: Factual question about a single concept or term.
+- material: Questions that require interpreting a provided figure or table in context; avoid simple visual lookup (e.g., 'what is written here') and instead design questions that demand reasoning, such as inferring relationships, constraints, or behaviors implied by the figure/table with respect to the given text chunk. The referenced image will be provided at inference time.
+- reasoning: Multi-step analytical question that synthesizes multiple ideas.
+
+Rules:
+1. All questions must be SELF-CONTAINED — fully understandable without the source text. Never reference "the passage", "section X", "the author", etc. The only exception: material questions may reference the figure/table with generic phrasing such as "According to the figure," or "Based on the table," — never use specific figure/table numbers or filenames in the question text.
+2. Figures/tables appear as <material:FILENAME> tags in the text. For material questions, put the exact FILENAME in the "material" field. Each material question must reference exactly ONE figure/table; do not combine multiple figures/tables into a single question.
+3. If no <material:...> tag exists, skip material questions entirely.
+4. Dynamically decide how many questions to generate:
+   - If the text is a table of contents, index, or similarly structure-only content with no substantive information, return an empty array [].
+   - For typical text chunks, generate at least 1 question per applicable category.
+   - For content-rich text (dense concepts, multiple figures/tables, or complex arguments), generate MULTIPLE questions per category as needed to adequately cover the material. For example, if the text contains 3 figures, generate up to 3 separate material questions, one per figure.
+
+If materials are present, they are provided after the text chunk — tables as labeled text blocks ([Table: FILENAME]) and images as inline images — both in the order they appear in the text.
+
+Output ONLY a JSON array, no other text:
+[
+  {"type":"concept","question":"..."},
+  {"type":"material","question":"...","material":"FILENAME"},
+  {"type":"reasoning","question":"..."}
+]"""
+
+SYSTEM_PROMPT_PREV = """You generate questions from a text chunk in three categories:
+- concept: Factual question about a single concept or term.
 - material: Question requiring interpretation of a specific figure/table. The referenced image will be provided at inference time.
 - reasoning: Multi-step analytical question that synthesizes multiple ideas.
 
@@ -128,6 +151,7 @@ class QGenerator:
                 logger.warning(
                     f"Unsupported material type, skipping: {filename}"
                 )
+                
 
         return [
             {"role": "system", "content": SYSTEM_PROMPT},
