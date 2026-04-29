@@ -24,4 +24,5 @@ outputs/
 .idea/
 
 *.out
+*.log
 wandb/
