@@ -1,3 +1,7 @@
-from .OCRParser import OCRParser
+"""Preprocessing modules for PDF parsing and SFT training data generation."""
 
-__all__ = ["OCRParser"]
+from .OCRParser import OCRParser
+from .TrainDataGenerator import TrainDataGenerator
+from .TrainDataMerger import TrainDataMerger
+
+__all__ = ["OCRParser", "TrainDataGenerator", "TrainDataMerger"]

@@ -9,9 +9,8 @@ dist/
 build/
 
 /external/
-/data/*
-!/data/evaluation/
-!/data/evaluation/**
+/data/
+/qwen-vl-finetune/
 checkpoints/
 outputs/
 *.bin
